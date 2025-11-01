@@ -12,18 +12,15 @@ import uploadRouter from "./routes/uploadRoutes.js";
 
 dotenv.config();
 
-// ✅ CONNECT TO MONGODB ATLAS (FINAL FIX)
+// ✅ CONNECT TO MONGODB ATLAS (No deprecated options)
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch((err) => console.log("❌ DB Connection Error:", err.message));
 
 const app = express();
 
-// ✅ ENABLE CORS
+// ✅ ENABLE CORS (Backend → Frontend Communication)
 app.use(
   cors({
     origin: "*",
@@ -31,13 +28,15 @@ app.use(
   })
 );
 
+// ✅ Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ API ROUTES
+// ✅ API Routes
 app.get("/api/keys/paypal", (req, res) => {
   res.send(process.env.PAYPAL_CLIENT_ID || "sb");
 });
+
 app.get("/api/keys/google", (req, res) => {
   res.send({ key: process.env.GOOGLE_API_KEY || "" });
 });
@@ -53,7 +52,7 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message });
 });
 
-// ✅ SERVER PORT
+// ✅ Server Port
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);
