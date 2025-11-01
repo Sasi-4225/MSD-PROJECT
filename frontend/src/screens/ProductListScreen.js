@@ -34,18 +34,12 @@ const reducer = (state, action) => {
       };
     case 'CREATE_FAIL':
       return { ...state, loadingCreate: false };
-
     case 'DELETE_REQUEST':
       return { ...state, loadingDelete: true, successDelete: false };
     case 'DELETE_SUCCESS':
-      return {
-        ...state,
-        loadingDelete: false,
-        successDelete: true,
-      };
+      return { ...state, loadingDelete: false, successDelete: true };
     case 'DELETE_FAIL':
       return { ...state, loadingDelete: false, successDelete: false };
-
     case 'DELETE_RESET':
       return { ...state, loadingDelete: false, successDelete: false };
     default:
@@ -81,34 +75,40 @@ const ProductListScreen = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await axios.get(`/api/products/admin?page=${page}`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
-  
+        const { data } = await axios.get(
+          `https://medimart-backend-bv5k.onrender.com/api/products/admin?page=${page}`,
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
       } catch (err) {
-        console.error(err);
         dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
       }
     };
-  
+
     if (successDelete) {
       dispatch({ type: 'DELETE_RESET' });
     } else {
       fetchData();
     }
-  },  [page, userInfo, successDelete]);
+  }, [page, userInfo, successDelete]);
 
   const createHandler = async () => {
     if (window.confirm('Are you sure to create?')) {
-      console.log('User confirmed to create');
       try {
         dispatch({ type: 'CREATE_REQUEST' });
-        const { data } = await axios.post('/api/products', {}, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
-  
-        toast.success('Fill the details ');
+
+        const { data } = await axios.post(
+          'https://medimart-backend-bv5k.onrender.com/api/products',
+          {},
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+
+        toast.success('Fill the details');
         dispatch({ type: 'CREATE_SUCCESS' });
         navigate(`/admin/product/${data.product._id}`);
       } catch (err) {
@@ -117,14 +117,16 @@ const ProductListScreen = () => {
       }
     }
   };
-  
 
   const deleteHandler = async (product) => {
     if (window.confirm('Are you sure to delete?')) {
       try {
-        await axios.delete(`/api/products/${product._id}`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
+        await axios.delete(
+          `https://medimart-backend-bv5k.onrender.com/api/products/${product._id}`,
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }
+        );
 
         toast.success('Product deleted successfully');
         dispatch({ type: 'DELETE_SUCCESS' });
@@ -147,9 +149,9 @@ const ProductListScreen = () => {
               type="button"
               onClick={createHandler}
               style={{
-                backgroundColor: '##ecf0f1',
-                color: '#fff',
-                border: 'none',
+                backgroundColor: '#ecf0f1',
+                color: '#000',
+                border: '1px solid #ccc',
                 padding: '10px 20px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -161,64 +163,79 @@ const ProductListScreen = () => {
         </Col>
       </Row>
 
-      {loadingCreate && <LoadingBox></LoadingBox>}
-      {loadingDelete && <LoadingBox></LoadingBox>}
+      {loadingCreate && <LoadingBox />}
+      {loadingDelete && <LoadingBox />}
 
       {loading ? (
-        <LoadingBox></LoadingBox>
+        <LoadingBox />
       ) : error ? (
         <MessageBox variant="danger">{error}</MessageBox>
       ) : (
         <>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              marginTop: '20px',
+            }}
+          >
             <thead>
               <tr>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>ID</th>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>NAME</th>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>PRICE</th>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>CATEGORY</th>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>VARIETY</th>
-                <th style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left', backgroundColor: '#3498db' }}>ACTIONS</th>
+                <th style={thStyle}>ID</th>
+                <th style={thStyle}>NAME</th>
+                <th style={thStyle}>PRICE</th>
+                <th style={thStyle}>CATEGORY</th>
+                <th style={thStyle}>VARIETY</th>
+                <th style={thStyle}>ACTIONS</th>
               </tr>
             </thead>
+
             <tbody>
               {products.map((product) => (
                 <tr key={product._id}>
-                  <td style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left' }}>{product._id}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left' }}>{product.name}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left' }}>₹{product.price}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left' }}>{product.category}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '10px', textAlign: 'left' }}>{product.brand}</td>
+                  <td style={tdStyle}>{product._id}</td>
+                  <td style={tdStyle}>{product.name}</td>
+                  <td style={tdStyle}>₹{product.price}</td>
+                  <td style={tdStyle}>{product.category}</td>
+                  <td style={tdStyle}>{product.brand}</td>
+
                   <td>
                     <Button
                       type="button"
                       variant="light"
-                      onClick={() => navigate(`/admin/product/${product._id}`)}
-                      style={{ marginRight: '5px', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                      onClick={() =>
+                        navigate(`/admin/product/${product._id}`)
+                      }
+                      style={actionBtn}
                     >
-                      <FaEdit style={{ marginRight: '5px' }} className="action-icon" />
+                      <FaEdit />
                     </Button>
+
                     <Button
                       type="button"
                       variant="danger"
                       onClick={() => deleteHandler(product)}
-                      style={{ marginRight: '5px', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                      style={actionBtn}
                     >
-                      <FaTrashAlt style={{ marginRight: '5px' }} className="action-icon" />
+                      <FaTrashAlt />
                     </Button>
+
                     <Button
                       type="button"
                       variant="info"
-                      onClick={() => navigate(`/admin/product/${product._id}`)}
-                      style={{ marginRight: '5px', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                      onClick={() =>
+                        navigate(`/admin/product/${product._id}`)
+                      }
+                      style={actionBtn}
                     >
-                      <FaEye style={{ marginRight: '5px' }} className="action-icon" />
+                      <FaEye />
                     </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
           <div>
             {[...Array(pages).keys()].map((x) => (
               <Link
@@ -231,10 +248,30 @@ const ProductListScreen = () => {
             ))}
           </div>
         </>
-        
       )}
     </div>
   );
+};
+
+const thStyle = {
+  border: '1px solid #ddd',
+  padding: '10px',
+  textAlign: 'left',
+  backgroundColor: '#3498db',
+  color: 'white',
+};
+
+const tdStyle = {
+  border: '1px solid #ddd',
+  padding: '10px',
+  textAlign: 'left',
+};
+
+const actionBtn = {
+  marginRight: '5px',
+  padding: '8px 15px',
+  borderRadius: '4px',
+  cursor: 'pointer',
 };
 
 export default ProductListScreen;
