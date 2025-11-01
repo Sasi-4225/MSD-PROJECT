@@ -1,9 +1,10 @@
+// utils.js
 import axios from "axios";
 
 // ✅ Your backend URL on Render
 export const BASE_URL = "https://medimart-backend-bv5k.onrender.com";
 
-// ✅ Set default backend URL for ALL axios requests
+// ✅ Set this as the default base URL for all axios requests
 axios.defaults.baseURL = BASE_URL;
 
 export const getError = (error) => {
