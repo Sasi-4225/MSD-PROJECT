@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // ✅ Your backend URL on Render
-export const BASE_URL = "https://medimart-backend-bv5k.onrender.com";
+export const BASE_URL = "https://backend-3s5c.onrender.com";
 
 // ✅ Automatically use backend URL for all requests
 axios.defaults.baseURL = BASE_URL;
