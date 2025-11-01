@@ -45,12 +45,16 @@ export default function SignupScreen() {
     }
 
     try {
-      const { data } = await Axios.post('api/users/signup', {
-        name,
-        email,
-        password,
-        recaptcha: recaptchaValue,
-      });
+      // ✅ Updated full backend URL
+      const { data } = await Axios.post(
+        'https://backend-3s5c.onrender.com/api/users/signup',
+        {
+          name,
+          email,
+          password,
+          recaptcha: recaptchaValue,
+        }
+      );
 
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       localStorage.setItem('userInfo', JSON.stringify(data));
@@ -101,7 +105,10 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
-        <Form.Group controlId="confirmPassword" style={{ marginBottom: '15px' }}>
+        <Form.Group
+          controlId="confirmPassword"
+          style={{ marginBottom: '15px' }}
+        >
           <Form.Label>Confirm Password</Form.Label>
           <Form.Control
             type="password"
