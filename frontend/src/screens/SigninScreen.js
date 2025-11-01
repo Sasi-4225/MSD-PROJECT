@@ -32,11 +32,13 @@ export default function SigninScreen() {
     }
 
     try {
-      const { data } = await Axios.post('/api/users/signin', {
+      // ✅ FIXED: remove "/" before api
+      const { data } = await Axios.post(`api/users/signin`, {
         email,
         password,
         recaptchaValue,
       });
+
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       localStorage.setItem('userInfo', JSON.stringify(data));
       navigate(redirect || '/');
@@ -52,11 +54,22 @@ export default function SigninScreen() {
   }, [navigate, redirect, userInfo]);
 
   return (
-    <Container style={{ maxWidth: '400px', margin: 'auto', paddingTop: '50px', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', backgroundColor: '#f9f9f9' }}>
+    <Container
+      style={{
+        maxWidth: '400px',
+        margin: 'auto',
+        paddingTop: '50px',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+        backgroundColor: '#f9f9f9'
+      }}
+    >
       <Helmet>
         <title>Sign In</title>
       </Helmet>
       <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Sign In</h1>
+
       <Form style={{ padding: '0 20px', marginBottom: '20px' }} onSubmit={submitHandler}>
         <Form.Group controlId="email" style={{ marginBottom: '15px' }}>
           <Form.Label>Email</Form.Label>
@@ -66,6 +79,7 @@ export default function SigninScreen() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </Form.Group>
+
         <Form.Group controlId="password" style={{ marginBottom: '15px' }}>
           <Form.Label>Password</Form.Label>
           <Form.Control
@@ -74,19 +88,24 @@ export default function SigninScreen() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Form.Group>
+
         <Form.Group style={{ marginBottom: '15px' }}>
           <ReCAPTCHA
             sitekey="6Lf7eyQpAAAAABP44pO0L6bvtrOV5FnLLk1kGIrR"
             onChange={(value) => setRecaptchaValue(value)}
           />
         </Form.Group>
+
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <Button type="submit" style={{ backgroundColor: '#28a745', border: 'none' }}>Sign In</Button>
+          <Button type="submit" style={{ backgroundColor: '#28a745', border: 'none' }}>
+            Sign In
+          </Button>
         </div>
+
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          New customer?{' '}
-          <Link to={`/signup?redirect=${redirect}`}>Create your account</Link>
+          New customer? <Link to={`/signup?redirect=${redirect}`}>Create your account</Link>
         </div>
+
         <div style={{ textAlign: 'center' }}>
           Forget Password? <Link to={`/forget-password`}>Reset Password</Link>
         </div>
