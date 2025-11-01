@@ -22,55 +22,41 @@ const reducer = (state, action) => {
 };
 
 const ProfileScreen = () => {
-  // State and dispatch from context
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
 
-  // Local state for form fields and loading
   const [name, setName] = useState(userInfo.name);
   const [email, setEmail] = useState(userInfo.email);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Reducer for managing loading state
   const [{ loadingUpdate }, dispatch] = useReducer(reducer, {
     loadingUpdate: false,
   });
 
-  // Form submission handler
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    // Password validation
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
     try {
-      // API call to update user profile
       const { data } = await axios.put(
-        '/api/users/profile',
+        'https://medimart-backend-bv5k.onrender.com/api/users/profile',
         { name, email, password },
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
 
-      // Dispatch success action
       dispatch({ type: 'UPDATE_SUCCESS' });
 
-      // Update user info in global state
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
-
-      // Save updated user info to local storage
       localStorage.setItem('userInfo', JSON.stringify(data));
 
-      // Show success toast
       toast.success('User updated successfully');
     } catch (err) {
-      // Dispatch failure action
       dispatch({ type: 'UPDATE_FAIL' });
-
-      // Show error toast
       toast.error(getError(err));
     }
   };
@@ -85,7 +71,7 @@ const ProfileScreen = () => {
           User Profile
         </h1>
         <form onSubmit={submitHandler} style={formStyle}>
-          {/* Form fields */}
+
           <Form.Group controlId="name" style={formGroupStyle}>
             <Form.Label style={labelStyle}>Name</Form.Label>
             <Form.Control
@@ -95,6 +81,7 @@ const ProfileScreen = () => {
               style={inputStyle}
             />
           </Form.Group>
+
           <Form.Group controlId="email" style={formGroupStyle}>
             <Form.Label style={labelStyle}>Email</Form.Label>
             <Form.Control
@@ -105,6 +92,7 @@ const ProfileScreen = () => {
               style={inputStyle}
             />
           </Form.Group>
+
           <Form.Group controlId="password" style={formGroupStyle}>
             <Form.Label style={labelStyle}>Password</Form.Label>
             <Form.Control
@@ -113,6 +101,7 @@ const ProfileScreen = () => {
               style={inputStyle}
             />
           </Form.Group>
+
           <Form.Group controlId="confirmPassword" style={formGroupStyle}>
             <Form.Label style={labelStyle}>Confirm Password</Form.Label>
             <Form.Control
@@ -121,12 +110,13 @@ const ProfileScreen = () => {
               style={inputStyle}
             />
           </Form.Group>
-          {/* Update button */}
+
           <div style={buttonContainerStyle} className="mb-3">
             <Button type="submit" style={buttonStyle}>
               Update
             </Button>
           </div>
+
         </form>
       </div>
     </div>
@@ -139,7 +129,7 @@ const containerStyle = {
   padding: '20px',
   maxWidth: '800px',
   margin: 'auto',
-  backgroundColor: '#f4f4f4', // Background color for the entire container
+  backgroundColor: '#f4f4f4',
 };
 
 const boxContainerStyle = {
