@@ -51,9 +51,12 @@ export default function UserEditScreen() {
     const fetchData = async () => {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
-        const { data } = await axios.get(`/api/users/${userId}`, {
+
+        // ✅ FIXED URL (remove leading slash)
+        const { data } = await axios.get(`api/users/${userId}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
+
         setName(data.name);
         setEmail(data.email);
         setIsAdmin(data.isAdmin);
@@ -72,16 +75,17 @@ export default function UserEditScreen() {
     e.preventDefault();
     try {
       dispatch({ type: 'UPDATE_REQUEST' });
+
+      // ✅ FIXED URL (remove leading slash)
       await axios.put(
-        `/api/users/${userId}`,
+        `api/users/${userId}`,
         { _id: userId, name, email, isAdmin },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         }
       );
-      dispatch({
-        type: 'UPDATE_SUCCESS',
-      });
+
+      dispatch({ type: 'UPDATE_SUCCESS' });
       toast.success('User updated successfully');
       navigate('/admin/users');
     } catch (error) {
@@ -89,6 +93,7 @@ export default function UserEditScreen() {
       dispatch({ type: 'UPDATE_FAIL' });
     }
   };
+
   return (
     <Container className="small-container">
       <Helmet>
@@ -97,7 +102,7 @@ export default function UserEditScreen() {
       <h1>Edit User {userId}</h1>
 
       {loading ? (
-        <LoadingBox></LoadingBox>
+        <LoadingBox />
       ) : error ? (
         <MessageBox variant="danger">{error}</MessageBox>
       ) : (
@@ -110,6 +115,7 @@ export default function UserEditScreen() {
               required
             />
           </Form.Group>
+
           <Form.Group className="mb-3" controlId="email">
             <Form.Label>Email</Form.Label>
             <Form.Control
@@ -133,7 +139,7 @@ export default function UserEditScreen() {
             <Button disabled={loadingUpdate} type="submit">
               Update
             </Button>
-            {loadingUpdate && <LoadingBox></LoadingBox>}
+            {loadingUpdate && <LoadingBox />}
           </div>
         </Form>
       )}
