@@ -48,8 +48,8 @@ export default function UserListScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
 
-        // ✅ FIXED Axios URL
-        const { data } = await axios.get(`api/users`, {
+        // ✅ FIX: Always use "/api/users"
+        const { data } = await axios.get(`/api/users`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
 
@@ -71,8 +71,8 @@ export default function UserListScreen() {
       try {
         dispatch({ type: 'DELETE_REQUEST' });
 
-        // ✅ FIXED Axios URL
-        await axios.delete(`api/users/${user._id}`, {
+        // ✅ FIX: Always use "/api/users/:id"
+        await axios.delete(`/api/users/${user._id}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
 
