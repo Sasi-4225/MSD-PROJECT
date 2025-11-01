@@ -52,14 +52,15 @@ export default function UserEditScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
 
-        // ✅ FIXED URL (remove leading slash)
-        const { data } = await axios.get(`api/users/${userId}`, {
+        // ✅ CORRECT URL
+        const { data } = await axios.get(`/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
 
         setName(data.name);
         setEmail(data.email);
         setIsAdmin(data.isAdmin);
+
         dispatch({ type: 'FETCH_SUCCESS' });
       } catch (err) {
         dispatch({
@@ -76,9 +77,9 @@ export default function UserEditScreen() {
     try {
       dispatch({ type: 'UPDATE_REQUEST' });
 
-      // ✅ FIXED URL (remove leading slash)
+      // ✅ CORRECT URL
       await axios.put(
-        `api/users/${userId}`,
+        `/api/users/${userId}`,
         { _id: userId, name, email, isAdmin },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -97,7 +98,7 @@ export default function UserEditScreen() {
   return (
     <Container className="small-container">
       <Helmet>
-        <title>Edit User ${userId}</title>
+        <title>Edit User {userId}</title>
       </Helmet>
       <h1>Edit User {userId}</h1>
 
