@@ -12,9 +12,12 @@ import uploadRouter from "./routes/uploadRoutes.js";
 
 dotenv.config();
 
-// ✅ CONNECT TO MONGODB ATLAS
+// ✅ CONNECT TO MONGODB ATLAS (FINAL FIX)
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch((err) => console.log("❌ DB Connection Error:", err.message));
 
@@ -31,7 +34,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API ROUTES
+// ✅ API ROUTES
 app.get("/api/keys/paypal", (req, res) => {
   res.send(process.env.PAYPAL_CLIENT_ID || "sb");
 });
