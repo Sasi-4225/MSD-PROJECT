@@ -5,11 +5,13 @@ import { isAuth, isAdmin } from '../utils.js';
 
 const productRouter = express.Router();
 
+// ✅ GET ALL PRODUCTS
 productRouter.get('/', async (req, res) => {
   const products = await Product.find();
   res.send(products);
 });
 
+// ✅ CREATE PRODUCT
 productRouter.post(
   '/',
   isAuth,
@@ -18,7 +20,7 @@ productRouter.post(
     const newProduct = new Product({
       name: 'sample name ' + Date.now(),
       slug: 'sample-name-' + Date.now(),
-      image: '/images/(enter image name).jpg',
+      image: '/images/sample.jpg',
       price: 0,
       category: 'sample category',
       brand: 'sample brand',
@@ -32,13 +34,14 @@ productRouter.post(
   })
 );
 
+// ✅ UPDATE PRODUCT
 productRouter.put(
   '/:id',
   isAuth,
   isAdmin,
   expressAsyncHandler(async (req, res) => {
-    const productId = req.params.id;
-    const product = await Product.findById(productId);
+    const product = await Product.findById(req.params.id);
+
     if (product) {
       product.name = req.body.name;
       product.slug = req.body.slug;
@@ -49,6 +52,7 @@ productRouter.put(
       product.brand = req.body.brand;
       product.countInStock = req.body.countInStock;
       product.description = req.body.description;
+
       await product.save();
       res.send({ message: 'Product Updated' });
     } else {
@@ -57,6 +61,7 @@ productRouter.put(
   })
 );
 
+// ✅ DELETE PRODUCT
 productRouter.delete(
   '/:id',
   isAuth,
@@ -72,17 +77,16 @@ productRouter.delete(
   })
 );
 
+// ✅ POST REVIEW
 productRouter.post(
   '/:id/reviews',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const productId = req.params.id;
-    const product = await Product.findById(productId);
+    const product = await Product.findById(req.params.id);
+
     if (product) {
       if (product.reviews.find((x) => x.name === req.user.name)) {
-        return res
-          .status(400)
-          .send({ message: 'You already submitted a review' });
+        return res.status(400).send({ message: 'You already submitted a review' });
       }
 
       const review = {
@@ -90,12 +94,15 @@ productRouter.post(
         rating: Number(req.body.rating),
         comment: req.body.comment,
       };
+
       product.reviews.push(review);
       product.numReviews = product.reviews.length;
       product.rating =
         product.reviews.reduce((a, c) => c.rating + a, 0) /
         product.reviews.length;
+
       const updatedProduct = await product.save();
+
       res.status(201).send({
         message: 'Review Created',
         review: updatedProduct.reviews[updatedProduct.reviews.length - 1],
@@ -108,6 +115,7 @@ productRouter.post(
   })
 );
 
+// ✅ ADMIN PRODUCT LIST (Pagination)
 const PAGE_SIZE = 3;
 
 productRouter.get(
@@ -122,7 +130,9 @@ productRouter.get(
     const products = await Product.find()
       .skip(pageSize * (page - 1))
       .limit(pageSize);
+
     const countProducts = await Product.countDocuments();
+
     res.send({
       products,
       countProducts,
@@ -132,25 +142,28 @@ productRouter.get(
   })
 );
 
+// ✅ SEARCH ROUTE (Fully Fixed)
 productRouter.get(
   '/search',
   expressAsyncHandler(async (req, res) => {
     const { query } = req;
-    const pageSize = query.pageSize || PAGE_SIZE;
-    const page = query.page || 1;
+    const pageSize = Number(query.pageSize) || PAGE_SIZE;
+    const page = Number(query.page) || 1;
+
     const category = query.category || '';
     const searchQuery = query.query || '';
 
+    // ✅ Case-insensitive search
     const queryFilter =
       searchQuery && searchQuery !== 'all'
-        ? {
-            name: {
-              $regex: searchQuery,
-              $options: 'i',
-            },
-          }
+        ? { name: { $regex: searchQuery, $options: 'i' } }
         : {};
-    const categoryFilter = category && category !== 'all' ? { category } : {};
+
+    // ✅ Category filter (case-insensitive)
+    const categoryFilter =
+      category && category !== 'all'
+        ? { category: { $regex: category, $options: 'i' } }
+        : {};
 
     const products = await Product.find({
       ...queryFilter,
@@ -163,6 +176,7 @@ productRouter.get(
       ...queryFilter,
       ...categoryFilter,
     });
+
     res.send({
       products,
       countProducts,
@@ -172,7 +186,7 @@ productRouter.get(
   })
 );
 
-
+// ✅ GET ALL CATEGORIES
 productRouter.get(
   '/categories',
   expressAsyncHandler(async (req, res) => {
@@ -181,6 +195,7 @@ productRouter.get(
   })
 );
 
+// ✅ GET PRODUCT BY SLUG
 productRouter.get('/slug/:slug', async (req, res) => {
   const product = await Product.findOne({ slug: req.params.slug });
   if (product) {
@@ -189,6 +204,8 @@ productRouter.get('/slug/:slug', async (req, res) => {
     res.status(404).send({ message: 'Product Not Found' });
   }
 });
+
+// ✅ GET PRODUCT BY ID
 productRouter.get('/:id', async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (product) {
