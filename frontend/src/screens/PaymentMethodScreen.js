@@ -9,6 +9,7 @@ import { Store } from "../Store";
 export default function PaymentMethodScreen() {
   const navigate = useNavigate();
   const { state, dispatch: ctxDispatch } = useContext(Store);
+
   const {
     cart: { shippingAddress, paymentMethod },
   } = state;
@@ -17,25 +18,38 @@ export default function PaymentMethodScreen() {
     paymentMethod || "online"
   );
 
+  // ✅ Redirect if shipping address missing
   useEffect(() => {
     if (!shippingAddress.address) {
       navigate("/shipping");
     }
   }, [shippingAddress, navigate]);
+
+  // ✅ Submit & save payment method
   const submitHandler = (e) => {
     e.preventDefault();
-    ctxDispatch({ type: "SAVE_PAYMENT_METHOD", payload: paymentMethodName });
+
+    ctxDispatch({
+      type: "SAVE_PAYMENT_METHOD",
+      payload: paymentMethodName,
+    });
+
     localStorage.setItem("paymentMethod", paymentMethodName);
+
     navigate("/placeorder");
   };
+
   return (
     <div>
-      <CheckoutSteps step1 step2 step3></CheckoutSteps>
+      <CheckoutSteps step1 step2 step3 />
+
       <div className="container small-container">
         <Helmet>
           <title>Payment Method</title>
         </Helmet>
+
         <h1 className="my-3">Payment Method</h1>
+
         <Form onSubmit={submitHandler}>
           <div className="mb-3">
             <Form.Check
@@ -47,18 +61,22 @@ export default function PaymentMethodScreen() {
               onChange={(e) => setPaymentMethod(e.target.value)}
             />
           </div>
+
           <div className="mb-3">
             <Form.Check
               type="radio"
-              id="Stripe"
+              id="cod"
               label="Cash on Delivery"
-              value="Stripe"
-              checked={paymentMethodName === "Stripe"}
+              value="cod"
+              checked={paymentMethodName === "cod"}
               onChange={(e) => setPaymentMethod(e.target.value)}
             />
           </div>
+
           <div className="mb-3">
-            <Button type="submit">Continue</Button>
+            <Button type="submit" variant="primary" className="w-100">
+              Continue
+            </Button>
           </div>
         </Form>
       </div>
