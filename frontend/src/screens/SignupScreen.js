@@ -8,7 +8,6 @@ import { useContext, useEffect, useState } from 'react';
 import { Store } from '../Store';
 import { toast } from 'react-toastify';
 import { getError } from '../utils';
-import ReCAPTCHA from 'react-google-recaptcha';
 
 export default function SignupScreen() {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [recaptchaValue, setRecaptchaValue] = useState('');
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
@@ -32,23 +30,16 @@ export default function SignupScreen() {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!recaptchaValue) {
-      toast.error('Please complete the reCAPTCHA verification');
-      return;
-    }
-
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
     try {
-      // ✅ Base URL comes from utils.js
       const { data } = await Axios.post('/api/users/signup', {
         name,
         email,
         password,
-        recaptchaValue,
       });
 
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
@@ -109,11 +100,6 @@ export default function SignupScreen() {
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </Form.Group>
-
-        <ReCAPTCHA
-          sitekey="6Lf7eyQpAAAAABP44pO0L6bvtrOV5FnLLk1kGIrR"
-          onChange={(value) => setRecaptchaValue(value)}
-        />
 
         <div className="mb-3 text-center">
           <Button type="submit" style={{ backgroundColor: '#28a745', border: 'none' }}>
