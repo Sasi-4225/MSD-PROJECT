@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { Store } from '../Store';
 import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
-import { getError } from '../utils';
+import { getError } from '../utils';  // ✅ axios.defaults.baseURL is here
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -28,14 +28,11 @@ const reducer = (state, action) => {
     case 'CREATE_REQUEST':
       return { ...state, loadingCreate: true };
     case 'CREATE_SUCCESS':
-      return {
-        ...state,
-        loadingCreate: false,
-      };
+      return { ...state, loadingCreate: false };
     case 'CREATE_FAIL':
       return { ...state, loadingCreate: false };
     case 'DELETE_REQUEST':
-      return { ...state, loadingDelete: true, successDelete: false };
+      return { ...state, loadingDelete: true };
     case 'DELETE_SUCCESS':
       return { ...state, loadingDelete: false, successDelete: true };
     case 'DELETE_FAIL':
@@ -49,20 +46,9 @@ const reducer = (state, action) => {
 
 const ProductListScreen = () => {
   const [
-    {
-      loading,
-      error,
-      products,
-      pages,
-      loadingCreate,
-      loadingDelete,
-      successDelete,
-    },
+    { loading, error, products, pages, loadingCreate, loadingDelete, successDelete },
     dispatch,
-  ] = useReducer(reducer, {
-    loading: true,
-    error: '',
-  });
+  ] = useReducer(reducer, { loading: true, error: '' });
 
   const navigate = useNavigate();
   const { search } = useLocation();
@@ -72,11 +58,14 @@ const ProductListScreen = () => {
   const { state } = useContext(Store);
   const { userInfo } = state;
 
+  // ✅ Fetch products (NO hard-coded URL)
   useEffect(() => {
     const fetchData = async () => {
       try {
+        dispatch({ type: 'FETCH_REQUEST' });
+
         const { data } = await axios.get(
-          `https://medimart-backend-bv5k.onrender.com/api/products/admin?page=${page}`,
+          `/api/products/admin?page=${page}`,
           {
             headers: { Authorization: `Bearer ${userInfo.token}` },
           }
@@ -95,17 +84,16 @@ const ProductListScreen = () => {
     }
   }, [page, userInfo, successDelete]);
 
+  // ✅ Create product
   const createHandler = async () => {
     if (window.confirm('Are you sure to create?')) {
       try {
         dispatch({ type: 'CREATE_REQUEST' });
 
         const { data } = await axios.post(
-          'https://medimart-backend-bv5k.onrender.com/api/products',
+          `/api/products`,
           {},
-          {
-            headers: { Authorization: `Bearer ${userInfo.token}` },
-          }
+          { headers: { Authorization: `Bearer ${userInfo.token}` } }
         );
 
         toast.success('Fill the details');
@@ -118,14 +106,13 @@ const ProductListScreen = () => {
     }
   };
 
+  // ✅ Delete product
   const deleteHandler = async (product) => {
     if (window.confirm('Are you sure to delete?')) {
       try {
         await axios.delete(
-          `https://medimart-backend-bv5k.onrender.com/api/products/${product._id}`,
-          {
-            headers: { Authorization: `Bearer ${userInfo.token}` },
-          }
+          `/api/products/${product._id}`,
+          { headers: { Authorization: `Bearer ${userInfo.token}` } }
         );
 
         toast.success('Product deleted successfully');
@@ -143,23 +130,21 @@ const ProductListScreen = () => {
         <Col>
           <h1>Products</h1>
         </Col>
-        <Col className="col text-end">
-          <div>
-            <Button
-              type="button"
-              onClick={createHandler}
-              style={{
-                backgroundColor: '#ecf0f1',
-                color: '#000',
-                border: '1px solid #ccc',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              <FaPlus style={{ marginRight: '5px' }} className="icon" />
-            </Button>
-          </div>
+
+        <Col className="text-end">
+          <Button
+            type="button"
+            onClick={createHandler}
+            style={{
+              backgroundColor: '#ecf0f1',
+              color: '#000',
+              border: '1px solid #ccc',
+              padding: '10px 20px',
+              borderRadius: '4px',
+            }}
+          >
+            <FaPlus style={{ marginRight: '5px' }} />
+          </Button>
         </Col>
       </Row>
 
@@ -203,9 +188,7 @@ const ProductListScreen = () => {
                     <Button
                       type="button"
                       variant="light"
-                      onClick={() =>
-                        navigate(`/admin/product/${product._id}`)
-                      }
+                      onClick={() => navigate(`/admin/product/${product._id}`)}
                       style={actionBtn}
                     >
                       <FaEdit />
@@ -223,9 +206,7 @@ const ProductListScreen = () => {
                     <Button
                       type="button"
                       variant="info"
-                      onClick={() =>
-                        navigate(`/admin/product/${product._id}`)
-                      }
+                      onClick={() => navigate(`/admin/product/${product._id}`)}
                       style={actionBtn}
                     >
                       <FaEye />
@@ -236,6 +217,7 @@ const ProductListScreen = () => {
             </tbody>
           </table>
 
+          {/* ✅ Pagination */}
           <div>
             {[...Array(pages).keys()].map((x) => (
               <Link
