@@ -1,21 +1,21 @@
-import React, { useContext, useEffect, useReducer } from 'react';
-import Chart from 'react-google-charts';
-import axios from 'axios';
-import { Store } from '../Store';
-import { getError, BASE_URL } from '../utils';   // ✅ FIXED
-import LoadingBox from '../components/LoadingBox';
-import MessageBox from '../components/MessageBox';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Card from 'react-bootstrap/Card';
+import React, { useContext, useEffect, useReducer } from "react";
+import Chart from "react-google-charts";
+import axios from "axios";
+import { Store } from "../Store";
+import { getError } from "../utils";
+import LoadingBox from "../components/LoadingBox";
+import MessageBox from "../components/MessageBox";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
+import Card from "react-bootstrap/Card";
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'FETCH_REQUEST':
+    case "FETCH_REQUEST":
       return { ...state, loading: true };
-    case 'FETCH_SUCCESS':
+    case "FETCH_SUCCESS":
       return { ...state, loading: false, summary: action.payload };
-    case 'FETCH_FAIL':
+    case "FETCH_FAIL":
       return { ...state, loading: false, error: action.payload };
     default:
       return state;
@@ -26,7 +26,7 @@ export default function DashboardScreen() {
   const [{ loading, summary, error }, dispatch] = useReducer(reducer, {
     loading: true,
     summary: {},
-    error: '',
+    error: "",
   });
 
   const { state } = useContext(Store);
@@ -34,19 +34,17 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
-      dispatch({ type: 'FETCH_REQUEST' });
+      dispatch({ type: "FETCH_REQUEST" });
 
       try {
-        const { data } = await axios.get(
-          `${BASE_URL}/api/orders/summary`,
-          {
-            headers: { Authorization: `Bearer ${userInfo?.token}` },
-          }
-        );
+        // ✅ ONLY USE RELATIVE URL (Base URL already set in App.js)
+        const { data } = await axios.get("/api/orders/summary", {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
 
-        dispatch({ type: 'FETCH_SUCCESS', payload: data });
+        dispatch({ type: "FETCH_SUCCESS", payload: data });
       } catch (err) {
-        dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
+        dispatch({ type: "FETCH_FAIL", payload: getError(err) });
       }
     };
 
@@ -109,7 +107,7 @@ export default function DashboardScreen() {
                 chartType="AreaChart"
                 loader={<div>Loading chart...</div>}
                 data={[
-                  ['Date', 'Sales'],
+                  ["Date", "Sales"],
                   ...summary.dailyOrders.map((x) => [x._id, x.sales]),
                 ]}
               />
@@ -128,7 +126,7 @@ export default function DashboardScreen() {
                 chartType="PieChart"
                 loader={<div>Loading chart...</div>}
                 data={[
-                  ['Category', 'Products'],
+                  ["Category", "Products"],
                   ...summary.productCategories.map((x) => [x._id, x.count]),
                 ]}
               />
