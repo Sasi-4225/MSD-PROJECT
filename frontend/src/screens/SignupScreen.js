@@ -20,15 +20,13 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [recaptchaValue, setRecaptchaValue] = useState(null);
+  const [recaptchaValue, setRecaptchaValue] = useState('');
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
 
   useEffect(() => {
-    if (userInfo) {
-      navigate(redirect);
-    }
+    if (userInfo) navigate(redirect);
   }, [navigate, redirect, userInfo]);
 
   const submitHandler = async (e) => {
@@ -45,16 +43,13 @@ export default function SignupScreen() {
     }
 
     try {
-      // ✅ Updated full backend URL
-      const { data } = await Axios.post(
-        'https://backend-3s5c.onrender.com/api/users/signup',
-        {
-          name,
-          email,
-          password,
-          recaptcha: recaptchaValue,
-        }
-      );
+      // ✅ Base URL comes from utils.js
+      const { data } = await Axios.post('/api/users/signup', {
+        name,
+        email,
+        password,
+        recaptchaValue,
+      });
 
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       localStorage.setItem('userInfo', JSON.stringify(data));
@@ -79,15 +74,16 @@ export default function SignupScreen() {
       <Helmet>
         <title>Sign Up</title>
       </Helmet>
+
       <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Sign Up</h1>
 
       <Form onSubmit={submitHandler}>
-        <Form.Group controlId="name" style={{ marginBottom: '15px' }}>
+        <Form.Group className="mb-3" controlId="name">
           <Form.Label>Name</Form.Label>
-          <Form.Control onChange={(e) => setName(e.target.value)} required />
+          <Form.Control required onChange={(e) => setName(e.target.value)} />
         </Form.Group>
 
-        <Form.Group controlId="email" style={{ marginBottom: '15px' }}>
+        <Form.Group className="mb-3" controlId="email">
           <Form.Label>Email</Form.Label>
           <Form.Control
             type="email"
@@ -96,7 +92,7 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
-        <Form.Group controlId="password" style={{ marginBottom: '15px' }}>
+        <Form.Group className="mb-3" controlId="password">
           <Form.Label>Password</Form.Label>
           <Form.Control
             type="password"
@@ -105,10 +101,7 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
-        <Form.Group
-          controlId="confirmPassword"
-          style={{ marginBottom: '15px' }}
-        >
+        <Form.Group className="mb-3" controlId="confirmPassword">
           <Form.Label>Confirm Password</Form.Label>
           <Form.Control
             type="password"
@@ -122,13 +115,13 @@ export default function SignupScreen() {
           onChange={(value) => setRecaptchaValue(value)}
         />
 
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <div className="mb-3 text-center">
           <Button type="submit" style={{ backgroundColor: '#28a745', border: 'none' }}>
             Sign Up
           </Button>
         </div>
 
-        <div style={{ textAlign: 'center' }} className="mb-3">
+        <div className="mb-3 text-center">
           Already have an account?{' '}
           <Link to={`/signin?redirect=${redirect}`}>Sign-In</Link>
         </div>
