@@ -19,106 +19,128 @@ export default function MapScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
   const navigate = useNavigate();
+
   const [googleApiKey, setGoogleApiKey] = useState('');
   const [center, setCenter] = useState(defaultLocation);
-  const [location, setLocation] = useState(center);
+  const [location, setLocation] = useState(defaultLocation);
   const [loading, setLoading] = useState(true);
 
+  // Refs
   const mapRef = useRef(null);
   const placeRef = useRef(null);
-  const markerRef = useRef(null);
 
+  // ✅ Get user current GPS location
   const getUserCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by this browser');
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCenter({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setLoading(false);
-        },
-        (error) => {
-          setLoading(false);
-          toast.error(`Error getting current location: ${error.message}`);
-        }
-      );
+      toast.error('Geolocation not supported by your browser.');
+      setLoading(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userPos = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setCenter(userPos);
+        setLocation(userPos);
+        setLoading(false);
+      },
+      (err) => {
+        setLoading(false);
+        toast.error('Unable to get location: ' + err.message);
+      }
+    );
   };
 
+  // ✅ Fetch Google Maps API Key
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
-        const { data } = await axios('/api/keys/google', {
-          headers: { Authorization: `BEARER ${userInfo.token}` },
-        });
+        const { data } = await axios.get(
+          'https://backend-3s5c.onrender.com/api/keys/google',
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+
         setGoogleApiKey(data.key);
         getUserCurrentLocation();
-      } catch (error) {
+      } catch (err) {
         setLoading(false);
-        toast.error(`Error fetching Google API key: ${getError(error)}`);
+        toast.error('Google API key error: ' + getError(err));
       }
     };
 
     fetchApiKey();
-    ctxDispatch({
-      type: 'SET_FULLBOX_ON',
-    });
+    ctxDispatch({ type: 'SET_FULLBOX_ON' });
   }, [ctxDispatch, userInfo]);
 
+  // ✅ Map load handler
   const onLoad = (map) => {
     mapRef.current = map;
   };
+
+  // ✅ Update marker as map moves
   const onIdle = () => {
+    if (!mapRef.current) return;
     setLocation({
       lat: mapRef.current.center.lat(),
       lng: mapRef.current.center.lng(),
     });
   };
 
+  // ✅ Search box load
   const onLoadPlaces = (place) => {
     placeRef.current = place;
   };
+
+  // ✅ When user selects a place from search
   const onPlacesChanged = () => {
-    const place = placeRef.current.getPlaces()[0].geometry.location;
-    setCenter({ lat: place.lat(), lng: place.lng() });
-    setLocation({ lat: place.lat(), lng: place.lng() });
+    if (!placeRef.current) return;
+
+    const places = placeRef.current.getPlaces();
+    if (!places || places.length === 0) {
+      toast.error('Invalid location');
+      return;
+    }
+
+    const loc = places[0].geometry.location;
+    const selected = { lat: loc.lat(), lng: loc.lng() };
+
+    setCenter(selected);
+    setLocation(selected);
   };
 
-  const onMarkerLoad = (marker) => {
-    markerRef.current = marker;
-  };
-
+  // ✅ Confirm location button
   const onConfirm = () => {
-    const places = placeRef.current.getPlaces() || [{}];
+    const places = placeRef.current?.getPlaces() || [{}];
+
     ctxDispatch({
       type: 'SAVE_SHIPPING_ADDRESS_MAP_LOCATION',
       payload: {
         lat: location.lat,
         lng: location.lng,
-        address: places[0].formatted_address,
-        name: places[0].name,
-        vicinity: places[0].vicinity,
-        googleAddressId: places[0].id,
+        address: places[0].formatted_address || '',
+        name: places[0].name || '',
+        vicinity: places[0].vicinity || '',
+        googleAddressId: places[0].id || '',
       },
     });
-    toast.success('Location selected successfully.');
+
+    toast.success('Location Selected ✅');
     navigate('/shipping');
   };
 
   return (
     <div className="full-box">
-      {loading && <p>Loading...</p>}
-      {!loading && (
-        <LoadScript libraries={libs} googleMapsApiKey={googleApiKey}>
+      {loading && <p>Loading map…</p>}
+
+      {!loading && googleApiKey && (
+        <LoadScript googleMapsApiKey={googleApiKey} libraries={libs}>
           <GoogleMap
-            id="sample-map"
+            id="map"
             mapContainerStyle={{ height: '100%', width: '100%' }}
             center={center}
             zoom={15}
@@ -129,14 +151,29 @@ export default function MapScreen() {
               onLoad={onLoadPlaces}
               onPlacesChanged={onPlacesChanged}
             >
-              <div className="map-input-box">
-                <input type="text" placeholder="Enter your address"></input>
-                <Button type="button" onClick={onConfirm}>
-                  Confirm
-                </Button>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  width: '300px',
+                  padding: '5px',
+                  backgroundColor: '#fff',
+                  zIndex: 10,
+                  display: 'flex',
+                  gap: '10px',
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="Search your address"
+                  style={{ width: '100%', padding: '8px' }}
+                />
+                <Button onClick={onConfirm}>Confirm</Button>
               </div>
             </StandaloneSearchBox>
-            <Marker position={location} onLoad={onMarkerLoad}></Marker>
+
+            <Marker position={location}></Marker>
           </GoogleMap>
         </LoadScript>
       )}
