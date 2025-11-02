@@ -15,19 +15,15 @@ const reducer = (state, action) => {
   switch (action.type) {
     case "FETCH_REQUEST":
       return { ...state, loading: true };
-
     case "FETCH_SUCCESS":
       return { ...state, loading: false };
-
     case "FETCH_FAIL":
       return { ...state, loading: false, error: action.payload };
 
     case "UPDATE_REQUEST":
       return { ...state, loadingUpdate: true };
-
     case "UPDATE_SUCCESS":
       return { ...state, loadingUpdate: false };
-
     case "UPDATE_FAIL":
       return { ...state, loadingUpdate: false };
 
@@ -56,23 +52,27 @@ export default function UserEditScreen() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        dispatch({ type: "FETCH_REQUEST" });
+            dispatch({ type: "FETCH_REQUEST" });
 
-        const { data } = await axios.get(`/api/users/${userId}`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
+            // ✅ Base URL is automatic
+            const { data } = await axios.get(
+              `/api/users/${userId}`,
+              {
+                headers: { Authorization: `Bearer ${userInfo.token}` },
+              }
+            );
 
-        setName(data.name);
-        setEmail(data.email);
-        setIsAdmin(data.isAdmin);
+            setName(data.name);
+            setEmail(data.email);
+            setIsAdmin(data.isAdmin);
 
-        dispatch({ type: "FETCH_SUCCESS" });
-      } catch (err) {
-        dispatch({
-          type: "FETCH_FAIL",
-          payload: getError(err),
-        });
-      }
+            dispatch({ type: "FETCH_SUCCESS" });
+        } catch (err) {
+            dispatch({
+              type: "FETCH_FAIL",
+              payload: getError(err),
+            });
+        }
     };
 
     fetchData();
@@ -84,6 +84,7 @@ export default function UserEditScreen() {
     try {
       dispatch({ type: "UPDATE_REQUEST" });
 
+      // ✅ Base URL handled by axios.defaults
       await axios.put(
         `/api/users/${userId}`,
         { _id: userId, name, email, isAdmin },
