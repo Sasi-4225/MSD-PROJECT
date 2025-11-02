@@ -5,7 +5,6 @@ import axios from 'axios';
 import { Store } from '../Store';
 import { getError } from '../utils';
 import Container from 'react-bootstrap/Container';
-import ListGroup from 'react-bootstrap/ListGroup';
 import Form from 'react-bootstrap/Form';
 import { Helmet } from 'react-helmet-async';
 import LoadingBox from '../components/LoadingBox';
@@ -26,12 +25,6 @@ const reducer = (state, action) => {
       return { ...state, loadingUpdate: false };
     case 'UPDATE_FAIL':
       return { ...state, loadingUpdate: false };
-    case 'UPLOAD_REQUEST':
-      return { ...state, loadingUpload: true };
-    case 'UPLOAD_SUCCESS':
-      return { ...state, loadingUpload: false };
-    case 'UPLOAD_FAIL':
-      return { ...state, loadingUpload: false };
     default:
       return state;
   }
@@ -60,11 +53,18 @@ export default function ProductEditScreen() {
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
 
+  // ✅ Load product details
   useEffect(() => {
     const fetchData = async () => {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
-        const { data } = await axios.get(`/api/products/${productId}`);
+
+        const { data } = await axios.get(
+          `/api/products/${productId}`,   // ✅ No hardcoded backend
+          {
+            headers: { Authorization: `Bearer ${userInfo?.token}` },
+          }
+        );
 
         setName(data.name);
         setSlug(data.slug);
@@ -83,15 +83,16 @@ export default function ProductEditScreen() {
     };
 
     fetchData();
-  }, [productId]);
+  }, [productId, userInfo]);
 
+  // ✅ Submit Updated Data
   const submitHandler = async (e) => {
     e.preventDefault();
     try {
       dispatch({ type: 'UPDATE_REQUEST' });
 
       await axios.put(
-        `/api/products/${productId}`,
+        `/api/products/${productId}`,   // ✅ No hardcoded backend
         {
           name,
           slug,
@@ -170,7 +171,11 @@ export default function ProductEditScreen() {
 
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>
-            <Form.Control value={description} onChange={(e) => setDescription(e.target.value)} required />
+            <Form.Control
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+            />
           </Form.Group>
 
           <Button type="submit" disabled={loadingUpdate}>
