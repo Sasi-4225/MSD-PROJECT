@@ -13,6 +13,8 @@ import { Store } from "../Store";
 import CheckoutSteps from "../components/CheckoutSteps";
 import LoadingBox from "../components/LoadingBox";
 
+const BASE_URL = "https://backend-3s5c.onrender.com";
+
 const reducer = (state, action) => {
   switch (action.type) {
     case "CREATE_REQUEST":
@@ -36,8 +38,8 @@ export default function PlaceOrderScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { cart, userInfo } = state;
 
-  // ✅ Ensure fullName exists (prevents order history crash)
-  const shipping = {
+  // ✅ Ensure shipping address has all required fields
+  const shippingAddress = {
     fullName: cart.shippingAddress.fullName || "",
     address: cart.shippingAddress.address || "",
     city: cart.shippingAddress.city || "",
@@ -45,7 +47,7 @@ export default function PlaceOrderScreen() {
     country: cart.shippingAddress.country || "",
   };
 
-  // ✅ Price Calculations
+  // ✅ Calculate Prices
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
 
   cart.itemsPrice = round2(
@@ -53,7 +55,7 @@ export default function PlaceOrderScreen() {
   );
 
   cart.shippingPrice = cart.itemsPrice > 100 ? 0 : 10;
-  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
+  cart.DiscountPrice = round2(cart.itemsPrice * 0.1);
   cart.totalPrice =
     cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
@@ -63,10 +65,10 @@ export default function PlaceOrderScreen() {
       dispatch({ type: "CREATE_REQUEST" });
 
       const { data } = await Axios.post(
-        "/api/orders",
+        `${BASE_URL}/api/orders`,
         {
           orderItems: cart.cartItems,
-          shippingAddress: shipping,
+          shippingAddress: shippingAddress,
           paymentMethod: cart.paymentMethod,
           itemsPrice: cart.itemsPrice,
           shippingPrice: cart.shippingPrice,
@@ -79,11 +81,10 @@ export default function PlaceOrderScreen() {
       );
 
       ctxDispatch({ type: "CART_CLEAR" });
+      dispatch({ type: "CREATE_SUCCESS" });
       localStorage.removeItem("cartItems");
 
-      dispatch({ type: "CREATE_SUCCESS" });
-
-      // ✅ Redirect to YOUR URL after placing order
+      // ✅ Redirect to custom page
       window.location.href = "https://frontend1-rn70.onrender.com/add";
 
     } catch (err) {
@@ -92,7 +93,7 @@ export default function PlaceOrderScreen() {
     }
   };
 
-  // ✅ Prevent direct access without payment method
+  // ✅ Prevent access without payment method
   useEffect(() => {
     if (!cart.paymentMethod) {
       navigate("/payment");
@@ -105,6 +106,7 @@ export default function PlaceOrderScreen() {
       <Helmet>
         <title>Preview Order</title>
       </Helmet>
+
       <h1 className="my-3">Preview Order</h1>
 
       <Row>
@@ -112,6 +114,7 @@ export default function PlaceOrderScreen() {
           <Card.Body>
             <Card.Title>Order Summary</Card.Title>
             <ListGroup variant="flush">
+
               <ListGroup.Item>
                 <Row>
                   <Col>Items</Col>
@@ -135,12 +138,8 @@ export default function PlaceOrderScreen() {
 
               <ListGroup.Item>
                 <Row>
-                  <Col>
-                    <strong>Order Total</strong>
-                  </Col>
-                  <Col>
-                    <strong>₹{cart.totalPrice.toFixed(2)}</strong>
-                  </Col>
+                  <Col><strong>Order Total</strong></Col>
+                  <Col><strong>₹{cart.totalPrice.toFixed(2)}</strong></Col>
                 </Row>
               </ListGroup.Item>
 
@@ -156,6 +155,7 @@ export default function PlaceOrderScreen() {
                 </div>
                 {loading && <LoadingBox />}
               </ListGroup.Item>
+
             </ListGroup>
           </Card.Body>
         </Card>
