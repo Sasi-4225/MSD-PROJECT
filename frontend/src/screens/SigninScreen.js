@@ -32,8 +32,8 @@ export default function SigninScreen() {
     }
 
     try {
-      // ✅ FIXED: remove "/" before api
-      const { data } = await Axios.post(`api/users/signin`, {
+      // ✅ Base URL from utils.js (axios.defaults.baseURL)
+      const { data } = await Axios.post('/api/users/signin', {
         email,
         password,
         recaptchaValue,
@@ -62,12 +62,13 @@ export default function SigninScreen() {
         border: '1px solid #ddd',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-        backgroundColor: '#f9f9f9'
+        backgroundColor: '#f9f9f9',
       }}
     >
       <Helmet>
         <title>Sign In</title>
       </Helmet>
+
       <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Sign In</h1>
 
       <Form style={{ padding: '0 20px', marginBottom: '20px' }} onSubmit={submitHandler}>
@@ -103,7 +104,8 @@ export default function SigninScreen() {
         </div>
 
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          New customer? <Link to={`/signup?redirect=${redirect}`}>Create your account</Link>
+          New customer?{' '}
+          <Link to={`/signup?redirect=${redirect}`}>Create your account</Link>
         </div>
 
         <div style={{ textAlign: 'center' }}>
