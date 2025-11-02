@@ -42,24 +42,21 @@ const reducer = (state, action) => {
 };
 
 function ProductScreen() {
-  let reviewsRef = useRef();
-
+  const reviewsRef = useRef();
   const navigate = useNavigate();
-  const params = useParams();
-  const { slug } = params;
+  const { slug } = useParams();
 
   const [{ loading, error, product, loadingCreateReview }, dispatch] =
     useReducer(reducer, {
       loading: true,
       error: "",
-      product: [],
+      product: {},
     });
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
 
-  // ✅ NEW STATES
   const [like, setLike] = useState(false);
   const [dislike, setDislike] = useState(false);
   const [buttonsDisabled, setButtonsDisabled] = useState(false);
@@ -67,11 +64,14 @@ function ProductScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { cart, userInfo } = state;
 
+  // ✅ Fetch product by slug (BASE_URL auto applied)
   useEffect(() => {
     const fetchData = async () => {
       try {
         dispatch({ type: "FETCH_REQUEST" });
+
         const { data } = await axios.get(`/api/products/slug/${slug}`);
+
         dispatch({ type: "FETCH_SUCCESS", payload: data });
       } catch (err) {
         dispatch({ type: "FETCH_FAIL", payload: getError(err) });
@@ -80,11 +80,13 @@ function ProductScreen() {
     fetchData();
   }, [slug]);
 
+  // ✅ Add to cart
   const addToCartHandler = async () => {
     const existItem = cart.cartItems.find((x) => x._id === product._id);
     const quantity = existItem ? existItem.quantity + 1 : 1;
 
     const { data } = await axios.get(`/api/products/${product._id}`);
+
     if (data.countInStock < quantity) {
       toast.error("Sorry. Product is out of stock");
       return;
@@ -98,6 +100,7 @@ function ProductScreen() {
     navigate("/cart");
   };
 
+  // ✅ Add review
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!comment || !rating) {
@@ -161,10 +164,7 @@ function ProductScreen() {
             </ListGroup.Item>
 
             <ListGroup.Item>
-              <Rating
-                rating={product.rating}
-                numReviews={product.numReviews}
-              />
+              <Rating rating={product.rating} numReviews={product.numReviews} />
             </ListGroup.Item>
 
             <ListGroup.Item>
@@ -226,17 +226,17 @@ function ProductScreen() {
         </Col>
       </Row>
 
+      {/* ✅ Reviews */}
       <div className="my-3">
         <h2 ref={reviewsRef}>Reviews</h2>
-        {product.reviews.length === 0 && (
-          <MessageBox>No reviews yet</MessageBox>
-        )}
+
+        {product.reviews.length === 0 && <MessageBox>No reviews yet</MessageBox>}
 
         <ListGroup>
           {product.reviews.map((review) => (
             <ListGroup.Item key={review._id}>
               <strong>{review.name}</strong>
-              <Rating rating={review.rating} caption="" />
+              <Rating rating={review.rating} />
               <p>{review.createdAt.substring(0, 10)}</p>
               <p>{review.comment}</p>
             </ListGroup.Item>
@@ -246,7 +246,6 @@ function ProductScreen() {
         <div className="my-3">
           {userInfo ? (
             <form onSubmit={submitHandler}>
-              {/* ✅ Like / Dislike */}
               <Button
                 style={{
                   backgroundColor: like ? "#28a745" : "transparent",
@@ -310,11 +309,16 @@ function ProductScreen() {
               <Button disabled={loadingCreateReview} type="submit">
                 Submit
               </Button>
+
               {loadingCreateReview && <LoadingBox />}
             </form>
           ) : (
             <MessageBox>
-              Please <Link to={`/signin?redirect=/product/${product.slug}`}>Sign In</Link> to write a review
+              Please{" "}
+              <Link to={`/signin?redirect=/product/${product.slug}`}>
+                Sign In
+              </Link>{" "}
+              to write a review
             </MessageBox>
           )}
         </div>
