@@ -1,155 +1,109 @@
-import Axios from "axios";
 import React, { useContext, useEffect, useReducer } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
-import Button from "react-bootstrap/Button";
-import ListGroup from "react-bootstrap/ListGroup";
-import { toast } from "react-toastify";
-import { getError } from "../utils";
 import { Store } from "../Store";
-import CheckoutSteps from "../components/CheckoutSteps";
+import { Link } from "react-router-dom";
+import axios from "axios";
 import LoadingBox from "../components/LoadingBox";
+import MessageBox from "../components/MessageBox";
 
 const BASE_URL = "https://backend-3s5c.onrender.com";
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case "CREATE_REQUEST":
+    case "FETCH_REQUEST":
       return { ...state, loading: true };
-    case "CREATE_SUCCESS":
-      return { ...state, loading: false };
-    case "CREATE_FAIL":
-      return { ...state, loading: false };
+    case "FETCH_SUCCESS":
+      return { ...state, loading: false, orders: action.payload };
+    case "FETCH_FAIL":
+      return { ...state, loading: false, error: action.payload };
     default:
       return state;
   }
 };
 
-export default function PlaceOrderScreen() {
-  const navigate = useNavigate();
+export default function OrderHistoryScreen() {
+  const { state } = useContext(Store);
+  const { userInfo } = state;
 
-  const [{ loading }, dispatch] = useReducer(reducer, {
-    loading: false,
+  const [{ loading, error, orders }, dispatch] = useReducer(reducer, {
+    loading: true,
+    error: "",
+    orders: [],
   });
 
-  const { state, dispatch: ctxDispatch } = useContext(Store);
-  const { cart, userInfo } = state;
-
-  // ✅ Calculate Prices
-  const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
-
-  cart.itemsPrice = round2(
-    cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
-  );
-  cart.shippingPrice = cart.itemsPrice > 100 ? 0 : 10;
-  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
-  cart.totalPrice =
-    cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
-
-  // ✅ Place Order Handler (Saves to Render Backend)
-  const placeOrderHandler = async () => {
-    try {
-      dispatch({ type: "CREATE_REQUEST" });
-
-      const { data } = await Axios.post(
-        `${BASE_URL}/api/orders`,
-        {
-          orderItems: cart.cartItems,
-          shippingAddress: cart.shippingAddress,
-          paymentMethod: cart.paymentMethod,
-          itemsPrice: cart.itemsPrice,
-          shippingPrice: cart.shippingPrice,
-          DiscountPrice: cart.DiscountPrice,
-          totalPrice: cart.totalPrice,
-        },
-        {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        }
-      );
-
-      ctxDispatch({ type: "CART_CLEAR" });
-      dispatch({ type: "CREATE_SUCCESS" });
-      localStorage.removeItem("cartItems");
-
-      // ✅ Redirect to your required page
-      window.location.href = "https://frontend1-rn70.onrender.com/add";
-
-    } catch (err) {
-      dispatch({ type: "CREATE_FAIL" });
-      toast.error(getError(err));
-    }
-  };
-
-  // ✅ Prevent direct access without payment method
   useEffect(() => {
-    if (!cart.paymentMethod) {
-      navigate("/payment");
-    }
-  }, [cart, navigate]);
+    const fetchData = async () => {
+      try {
+        dispatch({ type: "FETCH_REQUEST" });
+
+        const { data } = await axios.get(
+          `${BASE_URL}/api/orders/mine`,
+          {
+            headers: {
+              Authorization: `Bearer ${userInfo.token}`,
+            },
+          }
+        );
+
+        dispatch({ type: "FETCH_SUCCESS", payload: data });
+      } catch (err) {
+        dispatch({
+          type: "FETCH_FAIL",
+          payload: err.response?.data?.message || err.message,
+        });
+      }
+    };
+
+    fetchData();
+  }, [userInfo]);
 
   return (
     <div>
-      <CheckoutSteps step1 step2 step3 step4 />
       <Helmet>
-        <title>Preview Order</title>
+        <title>Order History</title>
       </Helmet>
 
-      <h1 className="my-3">Preview Order</h1>
+      <h1>Order History</h1>
 
-      <Row>
-        <Card>
-          <Card.Body>
-            <Card.Title>Order Summary</Card.Title>
-            <ListGroup variant="flush">
+      {loading ? (
+        <LoadingBox />
+      ) : error ? (
+        <MessageBox variant="danger">{error}</MessageBox>
+      ) : orders.length === 0 ? (
+        <MessageBox>No Orders Found</MessageBox>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>DATE</th>
+              <th>TOTAL</th>
+              <th>PAID</th>
+              <th>DELIVERED</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
 
-              <ListGroup.Item>
-                <Row>
-                  <Col>Items</Col>
-                  <Col>₹{cart.itemsPrice.toFixed(2)}</Col>
-                </Row>
-              </ListGroup.Item>
-
-              <ListGroup.Item>
-                <Row>
-                  <Col>Delivery charges</Col>
-                  <Col>₹{cart.shippingPrice.toFixed(2)}</Col>
-                </Row>
-              </ListGroup.Item>
-
-              <ListGroup.Item>
-                <Row>
-                  <Col>Discount (10%)</Col>
-                  <Col>-₹{cart.DiscountPrice.toFixed(2)}</Col>
-                </Row>
-              </ListGroup.Item>
-
-              <ListGroup.Item>
-                <Row>
-                  <Col><strong>Order Total</strong></Col>
-                  <Col><strong>₹{cart.totalPrice.toFixed(2)}</strong></Col>
-                </Row>
-              </ListGroup.Item>
-
-              <ListGroup.Item>
-                <div className="d-grid">
-                  <Button
-                    type="button"
-                    onClick={placeOrderHandler}
-                    disabled={cart.cartItems.length === 0}
-                  >
-                    Place Order
-                  </Button>
-                </div>
-                {loading && <LoadingBox />}
-              </ListGroup.Item>
-
-            </ListGroup>
-          </Card.Body>
-        </Card>
-      </Row>
+          <tbody>
+            {orders.map((order) => (
+              <tr key={order._id}>
+                <td>{order._id.substring(20, 24)}</td>
+                <td>{order.createdAt.substring(0, 10)}</td>
+                <td>₹{order.totalPrice.toFixed(2)}</td>
+                <td>{order.isPaid ? order.paidAt.substring(0, 10) : "No"}</td>
+                <td>
+                  {order.isDelivered
+                    ? order.deliveredAt.substring(0, 10)
+                    : "No"}
+                </td>
+                <td>
+                  <Link to={`/order/${order._id}`}>Details</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
