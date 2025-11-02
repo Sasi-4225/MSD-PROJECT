@@ -36,20 +36,25 @@ export default function PlaceOrderScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { cart, userInfo } = state;
 
-  const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100; // 123.2345 => 123.23
+  // ✅ Price Calculations
+  const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
+
   cart.itemsPrice = round2(
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
-  cart.shippingPrice = cart.itemsPrice > 100 ? round2(0) : round2(10);
-  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
-  cart.totalPrice = cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
+  cart.shippingPrice = cart.itemsPrice > 100 ? 0 : 10;
+  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
+  cart.totalPrice =
+    cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
+
+  // ✅ Place Order (Backend URL removed)
   const placeOrderHandler = async () => {
     try {
       dispatch({ type: "CREATE_REQUEST" });
 
       const { data } = await Axios.post(
-        "/api/orders",
+        "/api/orders", // ✅ Uses utils.js BASE_URL
         {
           orderItems: cart.cartItems,
           shippingAddress: cart.shippingAddress,
@@ -60,14 +65,14 @@ export default function PlaceOrderScreen() {
           totalPrice: cart.totalPrice,
         },
         {
-          headers: {
-            authorization: `Bearer ${userInfo.token}`,
-          },
+          headers: { Authorization: `Bearer ${userInfo.token}` },
         }
       );
+
       ctxDispatch({ type: "CART_CLEAR" });
       dispatch({ type: "CREATE_SUCCESS" });
       localStorage.removeItem("cartItems");
+
       navigate(`/order/${data.order._id}`);
     } catch (err) {
       dispatch({ type: "CREATE_FAIL" });
@@ -75,87 +80,69 @@ export default function PlaceOrderScreen() {
     }
   };
 
+  // ✅ Prevent direct access without payment method
   useEffect(() => {
     if (!cart.paymentMethod) {
       navigate("/payment");
     }
   }, [cart, navigate]);
-//////
+
   return (
     <div>
-      <CheckoutSteps step1 step2 step3 step4></CheckoutSteps>
+      <CheckoutSteps step1 step2 step3 step4 />
       <Helmet>
         <title>Preview Order</title>
       </Helmet>
       <h1 className="my-3">Preview Order</h1>
+
       <Row>
-          <Card>
-            <Card.Body>
-              <Card.Title>Order Summary</Card.Title>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <Row>
-                    <Col>Items</Col>
-                    <Col>
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                      }).format(cart.itemsPrice.toFixed(2))}
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <Row>
-                    <Col>Delivery charges</Col>
-                    <Col>
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                      }).format(cart.shippingPrice.toFixed(2))}
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <Row>
-                    <Col >Discount (10%)</Col>
-                    <Col>
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                      }).format(cart.DiscountPrice.toFixed(2))}
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <Row>
-                    <Col>
-                      <strong>Order Total</strong>
-                    </Col>
-                    <Col>
-                      <strong>
-                        {new Intl.NumberFormat("en-IN", {
-                          style: "currency",
-                          currency: "INR",
-                        }).format(cart.totalPrice.toFixed(2))}
-                      </strong>
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <div className="d-grid">
-                    <Button
-                      type="button"
-                      onClick={placeOrderHandler}
-                      disabled={cart.cartItems.length === 0}
-                    >
-                      Place Order
-                    </Button>
-                  </div>
-                  {loading && <LoadingBox></LoadingBox>}
-                </ListGroup.Item>
-              </ListGroup>
-            </Card.Body>
-          </Card>
+        <Card>
+          <Card.Body>
+            <Card.Title>Order Summary</Card.Title>
+            <ListGroup variant="flush">
+              <ListGroup.Item>
+                <Row>
+                  <Col>Items</Col>
+                  <Col>₹{cart.itemsPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <Row>
+                  <Col>Delivery charges</Col>
+                  <Col>₹{cart.shippingPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <Row>
+                  <Col>Discount (10%)</Col>
+                  <Col>-₹{cart.DiscountPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <Row>
+                  <Col><strong>Order Total</strong></Col>
+                  <Col><strong>₹{cart.totalPrice.toFixed(2)}</strong></Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <div className="d-grid">
+                  <Button
+                    type="button"
+                    onClick={placeOrderHandler}
+                    disabled={cart.cartItems.length === 0}
+                  >
+                    Place Order
+                  </Button>
+                </div>
+                {loading && <LoadingBox />}
+              </ListGroup.Item>
+            </ListGroup>
+          </Card.Body>
+        </Card>
       </Row>
     </div>
   );
