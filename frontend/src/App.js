@@ -33,10 +33,7 @@ import SearchScreen from './screens/SearchScreen';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 
-// ✅ FIXED — import DashboardScreen correctly
 import DashboardScreen from './screens/DashboardScreen';
-
-// ✅ FIXED
 import ProductListScreen from './screens/ProductListScreen';
 import ProductEditScreen from './screens/ProductEditScreen';
 import OrderListScreen from './screens/OrderListScreen';
@@ -53,7 +50,7 @@ import Feedback from './screens/Feedback';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faUser } from '@fortawesome/free-solid-svg-icons';
 
-// ✅ GLOBAL API URL (Fix for DashboardScreen & CartScreen issue)
+// ✅ GLOBAL API URL (Do NOT change)
 axios.defaults.baseURL = 'https://backend-3s5c.onrender.com';
 
 function App() {
@@ -113,7 +110,7 @@ function App() {
                 <Navbar.Brand>
                   <img
                     src="/images/logo.png"
-                    alt=""
+                    alt="logo"
                     style={{ width: '100px', height: 'auto' }}
                   />
                 </Navbar.Brand>
@@ -124,7 +121,8 @@ function App() {
                 <SearchBox />
 
                 <Nav className="me-auto w-100 justify-content-end">
-                  {/* ✅ ADMIN MENU FIXED */}
+
+                  {/* ✅ ADMIN MENU */}
                   {userInfo && userInfo.isAdmin && (
                     <>
                       <LinkContainer to="/admin/dashboard">
@@ -222,7 +220,6 @@ function App() {
           <Container className="mt-3">
             <Routes>
               <Route path="/" element={<HomeScreen />} />
-
               <Route path="/product/:slug" element={<ProductScreen />} />
               <Route path="/cart" element={<CartScreen />} />
               <Route path="/search" element={<SearchScreen />} />
@@ -259,6 +256,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/orderhistory"
                 element={
