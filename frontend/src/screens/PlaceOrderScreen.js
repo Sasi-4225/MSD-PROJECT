@@ -38,7 +38,7 @@ export default function PlaceOrderScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { cart, userInfo } = state;
 
-  // ✅ Ensure shipping address has all required fields
+  // ✅ Prepare shipping object to avoid undefined errors
   const shippingAddress = {
     fullName: cart.shippingAddress.fullName || "",
     address: cart.shippingAddress.address || "",
@@ -47,15 +47,14 @@ export default function PlaceOrderScreen() {
     country: cart.shippingAddress.country || "",
   };
 
-  // ✅ Calculate Prices
+  // ✅ Price Calculations
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
 
   cart.itemsPrice = round2(
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
-
   cart.shippingPrice = cart.itemsPrice > 100 ? 0 : 10;
-  cart.DiscountPrice = round2(cart.itemsPrice * 0.1);
+  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
   cart.totalPrice =
     cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
@@ -68,7 +67,7 @@ export default function PlaceOrderScreen() {
         `${BASE_URL}/api/orders`,
         {
           orderItems: cart.cartItems,
-          shippingAddress: shippingAddress,
+          shippingAddress,
           paymentMethod: cart.paymentMethod,
           itemsPrice: cart.itemsPrice,
           shippingPrice: cart.shippingPrice,
@@ -84,8 +83,11 @@ export default function PlaceOrderScreen() {
       dispatch({ type: "CREATE_SUCCESS" });
       localStorage.removeItem("cartItems");
 
-      // ✅ Redirect to custom page
-      window.location.href = "https://frontend1-rn70.onrender.com/add";
+      // ✅ Success message
+      toast.success("Order placed successfully!");
+
+      // ✅ Redirect to ORDER DETAILS page
+      navigate(`/order/${data.order._id}`);
 
     } catch (err) {
       dispatch({ type: "CREATE_FAIL" });
@@ -124,7 +126,7 @@ export default function PlaceOrderScreen() {
 
               <ListGroup.Item>
                 <Row>
-                  <Col>Delivery charges</Col>
+                  <Col>Delivery Charges</Col>
                   <Col>₹{cart.shippingPrice.toFixed(2)}</Col>
                 </Row>
               </ListGroup.Item>
