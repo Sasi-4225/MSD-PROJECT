@@ -4,7 +4,6 @@ import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import { Helmet } from 'react-helmet-async';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { Store } from '../Store';
 import { toast } from 'react-toastify';
 import { getError } from '../utils';
@@ -18,7 +17,6 @@ export default function SigninScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [recaptchaValue, setRecaptchaValue] = useState('');
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
@@ -26,17 +24,10 @@ export default function SigninScreen() {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!recaptchaValue) {
-      toast.error('Please complete the reCAPTCHA verification');
-      return;
-    }
-
     try {
-      // ✅ Base URL from utils.js (axios.defaults.baseURL)
       const { data } = await Axios.post('/api/users/signin', {
         email,
         password,
-        recaptchaValue,
       });
 
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
@@ -87,13 +78,6 @@ export default function SigninScreen() {
             type="password"
             required
             onChange={(e) => setPassword(e.target.value)}
-          />
-        </Form.Group>
-
-        <Form.Group style={{ marginBottom: '15px' }}>
-          <ReCAPTCHA
-            sitekey="6Lf7eyQpAAAAABP44pO0L6bvtrOV5FnLLk1kGIrR"
-            onChange={(value) => setRecaptchaValue(value)}
           />
         </Form.Group>
 
