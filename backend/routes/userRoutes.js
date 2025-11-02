@@ -4,11 +4,13 @@ import expressAsyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import User from '../models/userModel.js';
-import { isAuth, isAdmin, generateToken, baseUrl, mailgun } from '../utils.js';
+import { isAuth, isAdmin, generateToken, baseUrl } from '../utils.js';
 
 const userRouter = express.Router();
-//const nodemailer = require('nodemailer');
 
+/* ============================
+   ✅ ADMIN — LIST USERS
+=============================== */
 userRouter.get(
   '/',
   isAuth,
@@ -19,20 +21,22 @@ userRouter.get(
   })
 );
 
+/* ============================
+   ✅ ADMIN — SINGLE USER
+=============================== */
 userRouter.get(
   '/:id',
   isAuth,
   isAdmin,
   expressAsyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
-    if (user) {
-      res.send(user);
-    } else {
-      res.status(404).send({ message: 'User Not Found' });
-    }
+    user ? res.send(user) : res.status(404).send({ message: 'User Not Found' });
   })
 );
 
+/* ============================
+   ✅ UPDATE PROFILE
+=============================== */
 userRouter.put(
   '/profile',
   isAuth,
@@ -51,6 +55,7 @@ userRouter.put(
         name: updatedUser.name,
         email: updatedUser.email,
         isAdmin: updatedUser.isAdmin,
+        role: updatedUser.isAdmin ? "admin" : "user",
         token: generateToken(updatedUser),
       });
     } else {
@@ -59,145 +64,33 @@ userRouter.put(
   })
 );
 
-// ... (existing imports)
-
-userRouter.post(
-  '/forget-password',
-  expressAsyncHandler(async (req, res) => {
-    const { email, recaptchaValue } = req.body;
-
-    // Validate the email and reCAPTCHA value
-    if (!email || !recaptchaValue) {
-      res.status(400).send({ message: 'Invalid request. Email and reCAPTCHA value are required.' });
-      return;
-    }
-
-    const user = await User.findOne({ email });
-
-    if (user) {
-      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: '3h',
-      });
-      user.resetToken = token;
-      await user.save();
-
-      //reset link
-      console.log(`${baseUrl()}/reset-password/${token}`);
-
-      var transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: 'pharmacylifecare12@gmail.com',
-          pass: 'okvy xjjz frox vauu',
-        },
-      });
-
-      const link = `${baseUrl()}/reset-password/${token}`;
-      var mailOptions = {
-        from: 'pharmacylifecare12@gmail.com',
-        to: email, // Use the user's email
-        subject: 'Reset Password',
-        text: link,
-      };
-
-      transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-          console.log(error);
-          res.status(500).send({ message: 'Error sending reset password email.' });
-        } else {
-          console.log('Email sent: ' + info.response);
-          res.send({ message: 'We sent a reset password link to your email.' });
-        }
-      });
-    } else {
-      res.status(404).send({ message: 'User not found' });
-    }
-  })
-);
-
-
-userRouter.post(
-  '/reset-password',
-  expressAsyncHandler(async (req, res) => {
-    jwt.verify(req.body.token, process.env.JWT_SECRET, async (err, decode) => {
-      if (err) {
-        res.status(401).send({ message: 'Invalid Token' });
-      } else {
-        const user = await User.findOne({ resetToken: req.body.token });
-        if (user) {
-          if (req.body.password) {
-            user.password = bcrypt.hashSync(req.body.password, 8);
-            await user.save();
-            res.send({
-              message: 'Password reseted successfully',
-            });
-          }
-        } else {
-          res.status(404).send({ message: 'User not found' });
-        }
-      }
-    });
-  })
-);
-
-userRouter.put(
-  '/:id',
-  isAuth,
-  isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
-      user.isAdmin = Boolean(req.body.isAdmin);
-      const updatedUser = await user.save();
-      res.send({ message: 'User Updated', user: updatedUser });
-    } else {
-      res.status(404).send({ message: 'User Not Found' });
-    }
-  })
-);
-
-userRouter.delete(
-  '/:id',
-  isAuth,
-  isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
-    if (user) {
-      if (user.email === 'admin@example.com') {
-        res.status(400).send({ message: 'Can Not Delete Admin User' });
-        return;
-      }
-      await user.remove();
-      res.send({ message: 'User Deleted' });
-    } else {
-      res.status(404).send({ message: 'User Not Found' });
-    }
-  })
-);
+/* ============================
+   ✅ SIGNIN
+=============================== */
 userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
     const user = await User.findOne({ email: req.body.email });
-    if (user) {
-      if (bcrypt.compareSync(req.body.password, user.password)) {
-        res.send({
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          isAdmin: user.isAdmin,
-          token: generateToken(user),
-        });
-        return;
-      }
+
+    if (!user || !bcrypt.compareSync(req.body.password, user.password)) {
+      return res.status(401).send({ message: 'Invalid email or password' });
     }
-    res.status(401).send({ message: 'Invalid email or password' });
+
+    // ✅ Return FULL user object
+    res.send({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      role: user.isAdmin ? "admin" : "user",
+      token: generateToken(user),
+    });
   })
 );
 
+/* ============================
+   ✅ SIGNUP
+=============================== */
 userRouter.post(
   '/signup',
   expressAsyncHandler(async (req, res) => {
@@ -206,12 +99,15 @@ userRouter.post(
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password),
     });
+
     const user = await newUser.save();
+
     res.send({
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      role: user.isAdmin ? "admin" : "user",
       token: generateToken(user),
     });
   })
