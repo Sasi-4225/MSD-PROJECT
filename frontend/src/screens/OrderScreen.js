@@ -2,18 +2,20 @@ import axios from "axios";
 import React, { useContext, useEffect, useReducer } from "react";
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js";
 import { Helmet } from "react-helmet-async";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Button from "react-bootstrap/Button";
-import ListGroup from "react-bootstrap/ListGroup";
 import Card from "react-bootstrap/Card";
-import { Link } from "react-router-dom";
+import ListGroup from "react-bootstrap/ListGroup";
+import Button from "react-bootstrap/Button";
 import LoadingBox from "../components/LoadingBox";
 import MessageBox from "../components/MessageBox";
 import { Store } from "../Store";
-import { getError } from "../utils";
 import { toast } from "react-toastify";
+import { getError } from "../utils";
+
+// ✅ Backend URL (same everywhere)
+const BASE_URL = "https://backend-3s5c.onrender.com";
 
 function reducer(state, action) {
   switch (action.type) {
@@ -23,6 +25,7 @@ function reducer(state, action) {
       return { ...state, loading: false, order: action.payload, error: "" };
     case "FETCH_FAIL":
       return { ...state, loading: false, error: action.payload };
+
     case "PAY_REQUEST":
       return { ...state, loadingPay: true };
     case "PAY_SUCCESS":
@@ -39,33 +42,23 @@ function reducer(state, action) {
     case "DELIVER_FAIL":
       return { ...state, loadingDeliver: false };
     case "DELIVER_RESET":
-      return {
-        ...state,
-        loadingDeliver: false,
-        successDeliver: false,
-      };
+      return { ...state, loadingDeliver: false, successDeliver: false };
+
     default:
       return state;
   }
 }
+
 export default function OrderScreen() {
+  const navigate = useNavigate();
+  const params = useParams();
+  const { id: orderId } = params;
+
   const { state } = useContext(Store);
   const { userInfo } = state;
 
-  const params = useParams();
-  const { id: orderId } = params;
-  const navigate = useNavigate();
-
   const [
-    {
-      loading,
-      error,
-      order,
-      successPay,
-      loadingPay,
-      loadingDeliver,
-      successDeliver,
-    },
+    { loading, error, order, successPay, loadingPay, loadingDeliver, successDeliver },
     dispatch,
   ] = useReducer(reducer, {
     loading: true,
@@ -73,63 +66,65 @@ export default function OrderScreen() {
     error: "",
     successPay: false,
     loadingPay: false,
+    loadingDeliver: false,
+    successDeliver: false,
   });
 
   const [{ isPending }, paypalDispatch] = usePayPalScriptReducer();
 
+  // ✅ PayPal Create Order
   function createOrder(data, actions) {
     return actions.order
       .create({
-        purchase_units: [
-          {
-            amount: { value: order.totalPrice },
-          },
-        ],
+        purchase_units: [{ amount: { value: order.totalPrice } }],
       })
-      .then((orderID) => {
-        return orderID;
-      });
+      .then((orderID) => orderID);
   }
 
+  // ✅ PayPal Approve Payment
   function onApprove(data, actions) {
     return actions.order.capture().then(async function (details) {
       try {
         dispatch({ type: "PAY_REQUEST" });
+
         const { data } = await axios.put(
-          `/api/orders/${order._id}/pay`,
+          `${BASE_URL}/api/orders/${order._id}/pay`,
           details,
           {
             headers: { authorization: `Bearer ${userInfo.token}` },
           }
         );
+
         dispatch({ type: "PAY_SUCCESS", payload: data });
         toast.success("Order is paid");
       } catch (err) {
-        dispatch({ type: "PAY_FAIL", payload: getError(err) });
         toast.error(getError(err));
+        dispatch({ type: "PAY_FAIL" });
       }
     });
   }
-  // function onError(err) {
-  //   toast.error(getError(err));
-  // }
 
+  // ✅ Fetch Order Details
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         dispatch({ type: "FETCH_REQUEST" });
-        const { data } = await axios.get(`/api/orders/${orderId}`, {
-          headers: { authorization: `Bearer ${userInfo.token}` },
-        });
+
+        const { data } = await axios.get(
+          `${BASE_URL}/api/orders/${orderId}`,
+          {
+            headers: { authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+
         dispatch({ type: "FETCH_SUCCESS", payload: data });
       } catch (err) {
         dispatch({ type: "FETCH_FAIL", payload: getError(err) });
       }
     };
 
-    if (!userInfo) {
-      return navigate("/login");
-    }
+    if (!userInfo) return navigate("/signin");
+
     if (
       !order._id ||
       successPay ||
@@ -137,58 +132,59 @@ export default function OrderScreen() {
       (order._id && order._id !== orderId)
     ) {
       fetchOrder();
-      if (successPay) {
-        dispatch({ type: "PAY_RESET" });
-      }
-      if (successDeliver) {
-        dispatch({ type: "DELIVER_RESET" });
-      }
+      if (successPay) dispatch({ type: "PAY_RESET" });
+      if (successDeliver) dispatch({ type: "DELIVER_RESET" });
     } else {
-      const loadPaypalScript = async () => {
-        const { data: clientId } = await axios.get("/api/keys/paypal", {
-          headers: { authorization: `Bearer ${userInfo.token}` },
-        });
+      const loadPayPal = async () => {
+        const { data: clientId } = await axios.get(
+          `${BASE_URL}/api/keys/paypal`,
+          {
+            headers: { authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+
         paypalDispatch({
           type: "resetOptions",
-          value: {
-            "client-id": clientId,
-            currency: "USD",
-          },
+          value: { "client-id": clientId, currency: "USD" },
         });
+
         paypalDispatch({ type: "setLoadingStatus", value: "pending" });
       };
-      loadPaypalScript();
+      loadPayPal();
     }
   }, [
-    order,
     userInfo,
+    order,
     orderId,
     navigate,
-    paypalDispatch,
     successPay,
     successDeliver,
+    paypalDispatch,
   ]);
 
-  async function deliverOrderHandler() {
+  // ✅ Deliver Order (Admin)
+  const deliverOrderHandler = async () => {
     try {
       dispatch({ type: "DELIVER_REQUEST" });
+
       const { data } = await axios.put(
-        `/api/orders/${order._id}/deliver`,
+        `${BASE_URL}/api/orders/${order._id}/deliver`,
         {},
         {
           headers: { authorization: `Bearer ${userInfo.token}` },
         }
       );
+
       dispatch({ type: "DELIVER_SUCCESS", payload: data });
-      toast.success("Order is delivered");
+      toast.success("Order marked as delivered ✅");
     } catch (err) {
       toast.error(getError(err));
       dispatch({ type: "DELIVER_FAIL" });
     }
-  }
+  };
 
   return loading ? (
-    <LoadingBox></LoadingBox>
+    <LoadingBox />
   ) : error ? (
     <MessageBox variant="danger">{error}</MessageBox>
   ) : (
@@ -196,42 +192,30 @@ export default function OrderScreen() {
       <Helmet>
         <title>Order {orderId}</title>
       </Helmet>
+
       <h1 className="my-3">Order {orderId}</h1>
+
       <Row>
         <Col md={12}>
+          {/* ✅ Shipping */}
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>Shipping</Card.Title>
               <Card.Text>
                 <strong>Name:</strong> {order.shippingAddress.fullName} <br />
-                <strong>Address: </strong> {order.shippingAddress.address},
-                {order.shippingAddress.city}, {order.shippingAddress.postalCode}
-                ,{order.shippingAddress.country}
-                &nbsp;
-                {order.shippingAddress.location &&
-                  order.shippingAddress.location.lat && (
-                    <a
-                      target="_new"
-                      href={`https://maps.google.com?q=${order.shippingAddress.location.lat},${order.shippingAddress.location.lng}`}
-                    >
-                      Show On Map
-                    </a>
-                  )}
+                <strong>Address:</strong>{" "}
+                {order.shippingAddress.address}, {order.shippingAddress.city},{" "}
+                {order.shippingAddress.postalCode},{" "}
+                {order.shippingAddress.country}
               </Card.Text>
-              {/* {order.isDelivered ? (
-                <MessageBox variant="success">
-                  Delivered at {order.deliveredAt}
-                </MessageBox>
-              ) : (
-                <MessageBox variant="danger">Not Delivered</MessageBox>
-              )} */}
             </Card.Body>
           </Card>
-          {/*  */}
 
+          {/* ✅ Items */}
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>Items</Card.Title>
+
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>
@@ -241,18 +225,11 @@ export default function OrderScreen() {
                           src={item.image}
                           alt={item.name}
                           className="img-fluid rounded img-thumbnail"
-                        ></img>{" "}
+                        />{" "}
                         <Link to={`/product/${item.slug}`}>{item.name}</Link>
                       </Col>
-                      <Col md={3}>
-                        <span>{item.quantity}</span>
-                      </Col>
-                      <Col md={3}>
-                        {new Intl.NumberFormat("en-IN", {
-                          style: "currency",
-                          currency: "INR",
-                        }).format(item.price)}
-                      </Col>
+                      <Col md={3}>{item.quantity}</Col>
+                      <Col md={3}>₹{item.price.toFixed(2)}</Col>
                     </Row>
                   </ListGroup.Item>
                 ))}
@@ -261,6 +238,36 @@ export default function OrderScreen() {
           </Card>
         </Col>
       </Row>
+
+      {/* ✅ PayPal Button */}
+      {!order.isPaid && paymentSection()}
+
+      {/* ✅ Deliver Button for Admin */}
+      {userInfo.isAdmin && order.isPaid && !order.isDelivered && (
+        <Card>
+          <Card.Body>
+            {loadingDeliver ? (
+              <LoadingBox />
+            ) : (
+              <Button onClick={deliverOrderHandler}>Mark as Delivered</Button>
+            )}
+          </Card.Body>
+        </Card>
+      )}
     </div>
   );
+
+  function paymentSection() {
+    return (
+      <Card className="mb-3">
+        <Card.Body>
+          <Card.Title>Payment</Card.Title>
+
+          {isPending ? <LoadingBox /> : <PayPalButtons createOrder={createOrder} onApprove={onApprove} />}
+
+          {loadingPay && <LoadingBox />}
+        </Card.Body>
+      </Card>
+    );
+  }
 }
