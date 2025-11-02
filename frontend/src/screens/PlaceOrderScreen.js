@@ -36,6 +36,15 @@ export default function PlaceOrderScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { cart, userInfo } = state;
 
+  // ✅ Ensure fullName exists (prevents order history crash)
+  const shipping = {
+    fullName: cart.shippingAddress.fullName || "",
+    address: cart.shippingAddress.address || "",
+    city: cart.shippingAddress.city || "",
+    postalCode: cart.shippingAddress.postalCode || "",
+    country: cart.shippingAddress.country || "",
+  };
+
   // ✅ Price Calculations
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
 
@@ -48,7 +57,7 @@ export default function PlaceOrderScreen() {
   cart.totalPrice =
     cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
-  // ✅ Place Order
+  // ✅ Place Order Handler
   const placeOrderHandler = async () => {
     try {
       dispatch({ type: "CREATE_REQUEST" });
@@ -57,7 +66,7 @@ export default function PlaceOrderScreen() {
         "/api/orders",
         {
           orderItems: cart.cartItems,
-          shippingAddress: cart.shippingAddress,
+          shippingAddress: shipping,
           paymentMethod: cart.paymentMethod,
           itemsPrice: cart.itemsPrice,
           shippingPrice: cart.shippingPrice,
@@ -70,10 +79,11 @@ export default function PlaceOrderScreen() {
       );
 
       ctxDispatch({ type: "CART_CLEAR" });
-      dispatch({ type: "CREATE_SUCCESS" });
       localStorage.removeItem("cartItems");
 
-      // ✅ Redirect to your new URL
+      dispatch({ type: "CREATE_SUCCESS" });
+
+      // ✅ Redirect to YOUR URL after placing order
       window.location.href = "https://frontend1-rn70.onrender.com/add";
 
     } catch (err) {
