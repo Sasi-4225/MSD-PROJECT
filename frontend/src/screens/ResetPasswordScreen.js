@@ -1,4 +1,4 @@
-import Axios from 'axios';
+import axios from 'axios';
 import { useContext, useEffect, useState } from 'react';
 import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
@@ -19,7 +19,6 @@ export default function ResetPasswordScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
 
-  // ✅ If user already logged in OR no token → do not allow reset page
   useEffect(() => {
     if (userInfo) {
       navigate('/');
@@ -39,12 +38,12 @@ export default function ResetPasswordScreen() {
     }
 
     try {
-      await Axios.post('/api/users/reset-password', {
+      await axios.post('/api/users/reset-password', {
         token,
         password,
       });
 
-      toast.success('Password updated successfully');
+      toast.success('Password updated successfully 👍');
       navigate('/signin');
     } catch (err) {
       toast.error(getError(err));
@@ -56,6 +55,7 @@ export default function ResetPasswordScreen() {
       <Helmet>
         <title>Reset Password</title>
       </Helmet>
+
       <h1 className="my-3">Reset Password</h1>
 
       <Form onSubmit={submitHandler}>
