@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
 import Footer from '../components/Footer';
-// import data from '../data';
+import { getError } from '../utils';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -22,83 +22,59 @@ const reducer = (state, action) => {
   }
 };
 
-function HomeScreen() {
+export default function HomeScreen() {
   const [{ loading, error, products }, dispatch] = useReducer(reducer, {
-    products: [],
     loading: true,
+    products: [],
     error: '',
   });
-  const handleLike = (product) => {
-    // Implement your logic to update the product with a like
-    // You may want to make an API call to update the backend
-    console.log('Liked:', product.name);
-  };
 
-  const handleDislike = (product) => {
-    // Implement your logic to update the product with a dislike
-    // You may want to make an API call to update the backend
-    console.log('Disliked:', product.name);
-  };
-
-  // const [products, setProducts] = useState([]);
   useEffect(() => {
     const fetchData = async () => {
       dispatch({ type: 'FETCH_REQUEST' });
       try {
-        const result = await axios.get('/api/products');
-        dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
+        const { data } = await axios.get(
+          'https://backend-3s5c.onrender.com/api/products'
+        );
+        dispatch({ type: 'FETCH_SUCCESS', payload: data });
       } catch (err) {
-        dispatch({ type: 'FETCH_FAIL', payload: err.message });
+        dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
       }
-
-      // setProducts(result.data);
     };
     fetchData();
   }, []);
-  return (
-    <>
-      <div>
-        <Helmet>
-          <title>LifeCare</title>
-        </Helmet>
-        
-        <h1>Tablets</h1>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          {loading ? (
-            <LoadingBox />
-          ) : error ? (
-            <MessageBox style={{ color: 'red' }} variant="danger">
-              {error}
-            </MessageBox>
-          ) : (
-            <Row style={{ justifyContent: 'center' }}>
-              {products.map((product) => (
-                <Col
-                  key={product.slug}
-                  style={{ marginBottom: '15px' }}
-                  sm={6}
-                  md={4}
-                  lg={3}
-                >
-                  <Product
-                    product={product}
-                    style={{ border: '1px solid #ccc', padding: '10px' }}
-                  />
-                </Col>
-              ))}
-            </Row>
-          )}
-        </div>
 
-        <Footer />
+  return (
+    <div>
+      <Helmet>
+        <title>LifeCare</title>
+      </Helmet>
+
+      <h1 className="text-center my-4">Tablets</h1>
+
+      <div className="d-flex flex-column align-items-center">
+        {loading ? (
+          <LoadingBox />
+        ) : error ? (
+          <MessageBox variant="danger">{error}</MessageBox>
+        ) : (
+          <Row className="justify-content-center w-100 px-3">
+            {products.map((product) => (
+              <Col
+                key={product.slug}
+                sm={6}
+                md={4}
+                lg={3}
+                className="mb-4"
+              >
+                <Product product={product} />
+              </Col>
+            ))}
+          </Row>
+        )}
       </div>
-    </>
+
+      <Footer />
+    </div>
   );
 }
-export default HomeScreen;
