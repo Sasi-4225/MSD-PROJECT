@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import axios from 'axios';
 
-// Reducer for managing loading state
+// Reducer
 const reducer = (state, action) => {
   switch (action.type) {
     case 'UPDATE_REQUEST':
@@ -21,7 +21,7 @@ const reducer = (state, action) => {
   }
 };
 
-const ProfileScreen = () => {
+export default function ProfileScreen() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
 
@@ -43,8 +43,10 @@ const ProfileScreen = () => {
     }
 
     try {
+      dispatch({ type: 'UPDATE_REQUEST' });
+
       const { data } = await axios.put(
-        'https://medimart-backend-bv5k.onrender.com/api/users/profile',
+        'https://backend-3s5c.onrender.com/api/users/profile',
         { name, email, password },
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
@@ -54,7 +56,7 @@ const ProfileScreen = () => {
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       localStorage.setItem('userInfo', JSON.stringify(data));
 
-      toast.success('User updated successfully');
+      toast.success('Profile Updated Successfully ✅');
     } catch (err) {
       dispatch({ type: 'UPDATE_FAIL' });
       toast.error(getError(err));
@@ -62,16 +64,15 @@ const ProfileScreen = () => {
   };
 
   return (
-    <div style={containerStyle} className="container small-container">
+    <div style={containerStyle}>
       <Helmet>
         <title>User Profile</title>
       </Helmet>
-      <div style={boxContainerStyle}>
-        <h1 style={headingStyle} className="my-3">
-          User Profile
-        </h1>
-        <form onSubmit={submitHandler} style={formStyle}>
 
+      <div style={boxContainerStyle}>
+        <h1 style={headingStyle}>User Profile</h1>
+
+        <form onSubmit={submitHandler} style={formStyle}>
           <Form.Group controlId="name" style={formGroupStyle}>
             <Form.Label style={labelStyle}>Name</Form.Label>
             <Form.Control
@@ -98,6 +99,7 @@ const ProfileScreen = () => {
             <Form.Control
               type="password"
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank to keep existing"
               style={inputStyle}
             />
           </Form.Group>
@@ -111,74 +113,61 @@ const ProfileScreen = () => {
             />
           </Form.Group>
 
-          <div style={buttonContainerStyle} className="mb-3">
-            <Button type="submit" style={buttonStyle}>
-              Update
+          <div style={buttonContainerStyle}>
+            <Button type="submit" style={buttonStyle} disabled={loadingUpdate}>
+              {loadingUpdate ? 'Updating...' : 'Update Profile'}
             </Button>
           </div>
-
         </form>
       </div>
     </div>
   );
-};
+}
 
-// Styles
+/* ✅ STYLES FIXED BELOW */
 const containerStyle = {
-  margin: '20px',
-  padding: '20px',
-  maxWidth: '800px',
-  margin: 'auto',
-  backgroundColor: '#f4f4f4',
+  display: 'flex',
+  justifyContent: 'center',
+  padding: '40px 20px',
 };
 
 const boxContainerStyle = {
-  backgroundColor: '#8293ee',
-  padding: '20px',
+  background: 'white',
+  padding: '25px',
+  width: '100%',
+  maxWidth: '500px',
   borderRadius: '10px',
+  boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
 };
 
 const headingStyle = {
-  fontSize: '2em',
+  textAlign: 'center',
+  fontWeight: 'bold',
   marginBottom: '20px',
 };
 
-const formStyle = {
-  marginBottom: '20px',
-};
+const formStyle = { width: '100%' };
 
-const formGroupStyle = {
-  marginBottom: '20px',
-};
+const formGroupStyle = { marginBottom: '15px' };
 
 const labelStyle = {
-  display: 'block',
-  marginBottom: '5px',
-  fontSize: '1.2em',
-  color: '#333',
+  fontWeight: 'bold',
 };
 
 const inputStyle = {
-  width: '100%',
-  padding: '10px',
-  fontSize: '1em',
   borderRadius: '5px',
-  border: '1px solid #ccc',
+  padding: '10px',
 };
 
 const buttonContainerStyle = {
-  marginBottom: '20px',
+  textAlign: 'center',
+  marginTop: '20px',
 };
 
 const buttonStyle = {
-  backgroundColor: '#ff6c6c',
-  color: '#fff',
-  borderRadius: '5px',
-  padding: '15px 25px',
-  fontSize: '1.2em',
+  backgroundColor: '#0066cc',
+  border: 'none',
+  padding: '10px 20px',
   fontWeight: 'bold',
-  cursor: 'pointer',
-  transition: 'background-color 0.3s ease',
+  borderRadius: '5px',
 };
-
-export default ProfileScreen;
