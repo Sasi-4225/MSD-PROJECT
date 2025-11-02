@@ -48,13 +48,13 @@ export default function PlaceOrderScreen() {
   cart.totalPrice =
     cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
-  // ✅ Place Order (Backend URL removed)
+  // ✅ Place Order
   const placeOrderHandler = async () => {
     try {
       dispatch({ type: "CREATE_REQUEST" });
 
       const { data } = await Axios.post(
-        "/api/orders", // ✅ Uses utils.js BASE_URL
+        "/api/orders",
         {
           orderItems: cart.cartItems,
           shippingAddress: cart.shippingAddress,
@@ -73,7 +73,9 @@ export default function PlaceOrderScreen() {
       dispatch({ type: "CREATE_SUCCESS" });
       localStorage.removeItem("cartItems");
 
-      navigate(`/order/${data.order._id}`);
+      // ✅ Redirect to your new URL
+      window.location.href = "https://frontend1-rn70.onrender.com/add";
+
     } catch (err) {
       dispatch({ type: "CREATE_FAIL" });
       toast.error(getError(err));
@@ -123,8 +125,12 @@ export default function PlaceOrderScreen() {
 
               <ListGroup.Item>
                 <Row>
-                  <Col><strong>Order Total</strong></Col>
-                  <Col><strong>₹{cart.totalPrice.toFixed(2)}</strong></Col>
+                  <Col>
+                    <strong>Order Total</strong>
+                  </Col>
+                  <Col>
+                    <strong>₹{cart.totalPrice.toFixed(2)}</strong>
+                  </Col>
                 </Row>
               </ListGroup.Item>
 
