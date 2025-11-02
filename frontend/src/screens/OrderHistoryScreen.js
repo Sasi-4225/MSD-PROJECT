@@ -1,191 +1,155 @@
-import React, { useContext, useEffect, useReducer } from 'react';
-import { Helmet } from 'react-helmet-async';
-import axios from 'axios';
-import { MdInfo } from 'react-icons/md';
-import LoadingBox from '../components/LoadingBox';
-import MessageBox from '../components/MessageBox';
-import { Store } from '../Store';
-import { Link } from 'react-router-dom';
-import { getError } from '../utils';
+import Axios from "axios";
+import React, { useContext, useEffect, useReducer } from "react";
+import { Helmet } from "react-helmet-async";
+import { Link, useNavigate } from "react-router-dom";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
+import Card from "react-bootstrap/Card";
+import Button from "react-bootstrap/Button";
+import ListGroup from "react-bootstrap/ListGroup";
+import { toast } from "react-toastify";
+import { getError } from "../utils";
+import { Store } from "../Store";
+import CheckoutSteps from "../components/CheckoutSteps";
+import LoadingBox from "../components/LoadingBox";
 
-const BASE_URL = 'https://backend-3s5c.onrender.com';
+const BASE_URL = "https://backend-3s5c.onrender.com";
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'FETCH_REQUEST':
+    case "CREATE_REQUEST":
       return { ...state, loading: true };
-    case 'FETCH_SUCCESS':
-      return { ...state, orders: action.payload, loading: false };
-    case 'FETCH_FAIL':
-      return { ...state, loading: false, error: action.payload };
+    case "CREATE_SUCCESS":
+      return { ...state, loading: false };
+    case "CREATE_FAIL":
+      return { ...state, loading: false };
     default:
       return state;
   }
 };
 
-export default function OrderHistoryScreen() {
-  const { state } = useContext(Store);
-  const { userInfo } = state;
+export default function PlaceOrderScreen() {
+  const navigate = useNavigate();
 
-  const [{ loading, error, orders }, dispatch] = useReducer(reducer, {
-    loading: true,
-    error: '',
-    orders: [],
+  const [{ loading }, dispatch] = useReducer(reducer, {
+    loading: false,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        dispatch({ type: 'FETCH_REQUEST' });
+  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { cart, userInfo } = state;
 
-        const { data } = await axios.get(
-          `${BASE_URL}/api/orders/mine`,
-          {
-            headers: { Authorization: `Bearer ${userInfo.token}` },
-          }
-        );
+  // ✅ Calculate Prices
+  const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100;
 
-        dispatch({ type: 'FETCH_SUCCESS', payload: data });
-      } catch (err) {
-        dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
-      }
-    };
+  cart.itemsPrice = round2(
+    cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
+  );
+  cart.shippingPrice = cart.itemsPrice > 100 ? 0 : 10;
+  cart.DiscountPrice = round2(0.1 * cart.itemsPrice);
+  cart.totalPrice =
+    cart.itemsPrice + cart.shippingPrice - cart.DiscountPrice;
 
-    fetchData();
-  }, [userInfo]);
-
-  // ✅ Cancel Order
-  const removeProductHandler = async (orderId) => {
-    if (!window.confirm("Do you want to cancel your order?")) return;
-
+  // ✅ Place Order Handler (Saves to Render Backend)
+  const placeOrderHandler = async () => {
     try {
-      await axios.delete(`${BASE_URL}/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${userInfo.token}` },
-      });
+      dispatch({ type: "CREATE_REQUEST" });
 
-      const { data } = await axios.get(
-        `${BASE_URL}/api/orders/mine`,
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
-      );
-
-      dispatch({ type: 'FETCH_SUCCESS', payload: data });
-    } catch (err) {
-      console.error(getError(err));
-    }
-  };
-
-  // ✅ Download Invoice PDF
-  const downloadReport = async (orderId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/api/orders/${orderId}/report`,
+      const { data } = await Axios.post(
+        `${BASE_URL}/api/orders`,
+        {
+          orderItems: cart.cartItems,
+          shippingAddress: cart.shippingAddress,
+          paymentMethod: cart.paymentMethod,
+          itemsPrice: cart.itemsPrice,
+          shippingPrice: cart.shippingPrice,
+          DiscountPrice: cart.DiscountPrice,
+          totalPrice: cart.totalPrice,
+        },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
-          responseType: 'blob',
         }
       );
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      ctxDispatch({ type: "CART_CLEAR" });
+      dispatch({ type: "CREATE_SUCCESS" });
+      localStorage.removeItem("cartItems");
 
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `OrderReport_${orderId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // ✅ Redirect to your required page
+      window.location.href = "https://frontend1-rn70.onrender.com/add";
+
     } catch (err) {
-      console.error('Error downloading report:', err);
+      dispatch({ type: "CREATE_FAIL" });
+      toast.error(getError(err));
     }
   };
 
+  // ✅ Prevent direct access without payment method
+  useEffect(() => {
+    if (!cart.paymentMethod) {
+      navigate("/payment");
+    }
+  }, [cart, navigate]);
+
   return (
-    <div style={{ margin: '20px', padding: '20px', maxWidth: '900px' }}>
+    <div>
+      <CheckoutSteps step1 step2 step3 step4 />
       <Helmet>
-        <title>Order History</title>
+        <title>Preview Order</title>
       </Helmet>
 
-      <h1 style={{ fontSize: '2em', marginBottom: '20px' }}>Order History</h1>
+      <h1 className="my-3">Preview Order</h1>
 
-      {loading ? (
-        <LoadingBox />
-      ) : error ? (
-        <MessageBox variant="danger">{error}</MessageBox>
-      ) : (
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={tableHeaderStyle}>ID</th>
-              <th style={tableHeaderStyle}>DATE</th>
-              <th style={tableHeaderStyle}>TOTAL</th>
-              <th style={tableHeaderStyle}>ACTIONS</th>
-            </tr>
-          </thead>
+      <Row>
+        <Card>
+          <Card.Body>
+            <Card.Title>Order Summary</Card.Title>
+            <ListGroup variant="flush">
 
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order._id}>
-                <td style={tableCellStyle}>{order._id}</td>
-                <td style={tableCellStyle}>{order.createdAt.substring(0, 10)}</td>
-                <td style={tableCellStyle}>₹{order.totalPrice.toFixed(2)}</td>
+              <ListGroup.Item>
+                <Row>
+                  <Col>Items</Col>
+                  <Col>₹{cart.itemsPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
 
-                <td style={tableCellStyle}>
-                  {/* View */}
-                  <Link
-                    to={`/order/${order._id}`}
-                    style={{ marginRight: '10px', fontSize: '1.3rem' }}
+              <ListGroup.Item>
+                <Row>
+                  <Col>Delivery charges</Col>
+                  <Col>₹{cart.shippingPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <Row>
+                  <Col>Discount (10%)</Col>
+                  <Col>-₹{cart.DiscountPrice.toFixed(2)}</Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <Row>
+                  <Col><strong>Order Total</strong></Col>
+                  <Col><strong>₹{cart.totalPrice.toFixed(2)}</strong></Col>
+                </Row>
+              </ListGroup.Item>
+
+              <ListGroup.Item>
+                <div className="d-grid">
+                  <Button
+                    type="button"
+                    onClick={placeOrderHandler}
+                    disabled={cart.cartItems.length === 0}
                   >
-                    <MdInfo />
-                  </Link>
+                    Place Order
+                  </Button>
+                </div>
+                {loading && <LoadingBox />}
+              </ListGroup.Item>
 
-                  {/* Invoice */}
-                  <button
-                    onClick={() => downloadReport(order._id)}
-                    style={buttonStyle}
-                  >
-                    Invoice
-                  </button>
-
-                  {/* Cancel */}
-                  <button
-                    onClick={() => removeProductHandler(order._id)}
-                    style={cancelButton}
-                  >
-                    Cancel
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </ListGroup>
+          </Card.Body>
+        </Card>
+      </Row>
     </div>
   );
 }
-
-const tableHeaderStyle = {
-  padding: '12px',
-  backgroundColor: '#3498db',
-  color: '#fff',
-};
-
-const tableCellStyle = {
-  padding: '12px',
-  backgroundColor: '#ecf0f1',
-};
-
-const buttonStyle = {
-  padding: '5px 10px',
-  marginRight: '10px',
-  backgroundColor: '#2ecc71',
-  border: 'none',
-  color: '#fff',
-  borderRadius: '4px',
-};
-
-const cancelButton = {
-  padding: '5px 10px',
-  backgroundColor: '#e74c3c',
-  border: 'none',
-  color: '#fff',
-  borderRadius: '4px',
-};
